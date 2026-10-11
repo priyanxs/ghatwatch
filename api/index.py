@@ -133,6 +133,7 @@ def overview():
     rows = [{**r, "location": places.get(r["ghat"]), "id": slugify(r["ghat"]), "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
     return clean({
         "days_left": days_left(),
+        "as_of": __import__("datetime").date.today().isoformat(),
         "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
         "periods": [{"key": p, "year": int(y), "festival": f} for p, y, f in
                     data[["period", "year", "festival", "p_order"]].drop_duplicates().sort_values("p_order")[["period", "year", "festival"]].itertuples(index=False)],

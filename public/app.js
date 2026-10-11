@@ -7,7 +7,7 @@ const PHASE_STYLE = { "Pre-Visarjan": ["#0E7490", "solid"], "During": ["#F59E0B"
 const LEVEL_COLOUR = { High: "#DC2626", Medium: "#D97706", Low: "#059669" };
 const NO_RECORD = "(no record)";
 
-const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all" };   // state.ghat is a ghat id (slug)
+const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all", lakeParam: "do" };   // state.ghat is a ghat id (slug)
 let I18N, OVERVIEW, WEEKLY;
 const detailCache = {};
 
@@ -51,11 +51,24 @@ const phRange = () => `${OVERVIEW.limits.ph_min} to ${OVERVIEW.limits.ph_max}`;
 function hero() {
     const buttons = Object.entries(I18N.languages)
         .map(([code, name]) => `<button data-lang="${code}" aria-pressed="${code === state.lang}">${esc(name)}</button>`).join("");
-    return `<header class="hero"><div class="wrap">
-        <div class="bar"><img class="logo" src="/icon.png" alt="GhatWatch logo"><div class="brand">Ghat<span>Watch</span></div>
+    const periods = OVERVIEW.periods, mock = OVERVIEW.is_mock;
+    const asOf = new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(state.lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const facts = [
+        [t("hdr.prepared"), t("hdr.prepared.v")],
+        [t("hdr.data"), mock ? t("hdr.data.demo") : t("hdr.data.v", { from: periods[0].year, to: periods[periods.length - 1].year })],
+        [t("hdr.coverage"), t("hdr.coverage.v", { n: OVERVIEW.metrics.ghats, p: periods.length })],
+        [t("hdr.standard"), t("hdr.standard.v")],
+        [t("hdr.status"), mock ? t("hdr.strip.demo").split(":")[0] : t("hdr.status.v")],
+        [t("hdr.asof"), asOf],
+        ...(OVERVIEW.days_left != null ? [[t("hdr.event"), t("hdr.event.v", { n: OVERVIEW.days_left })]] : []),
+    ].map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+    return `<header class="hero">
+        <div class="strip ${mock ? "demo" : ""}"><div class="wrap">${esc(mock ? t("hdr.strip.demo") : t("hdr.strip"))}</div></div>
+        <div class="wrap">
+        <div class="bar"><img class="logo" src="/icon.png" alt="GhatWatch logo"><div class="brand">GhatWatch</div>
             <div class="lang" role="group" aria-label="Language">${buttons}</div></div>
-        <h1>${esc(t("hero.tag"))}</h1><p class="sub">${esc(t("subtitle"))}</p>
-        ${OVERVIEW.days_left != null ? `<p class="countdown">⏳ ${esc(t("hero.countdown", { n: OVERVIEW.days_left }))}</p>` : ""}</div>
+        <h1>${esc(t("hdr.title"))}</h1><p class="sub">${esc(t("hdr.sub"))}</p>
+        <dl class="facts">${facts}</dl></div>
         <svg class="wave" viewBox="0 0 1440 56" preserveAspectRatio="none" aria-hidden="true">
             <path fill="#EEF6F7" d="M0 32c120 20 240 24 360 8s240-36 360-32 240 28 360 36 240-8 360-24v36H0z"/></svg></header>`;
 }
@@ -234,6 +247,28 @@ function caveatsSection() {
         ${verified}<ul class="caveats">${OVERVIEW.caveats.map((c) => `<li>${esc(c[state.lang])}</li>`).join("")}</ul></div>`;
 }
 
+/** Every lake station and month for one parameter. Red = outside the CPCB Class B limit; hatched = no reading. */
+function lakeDataTable() {
+    const L = OVERVIEW.lakes, lim = OVERVIEW.limits, p = state.lakeParam;
+    const outside = (v) => (p === "do" ? v < lim.do_min : p === "ph" ? v < lim.ph_min || v > lim.ph_max : false);   // BOD (3 days) has no limit to judge against
+    const body = ["Upper Lake", "Lower Lake"].map((lake) => {
+        const rows = L.stations.filter((s) => s.lake === lake).map((s) => `<tr><td class="name">${esc(s.name)}</td>${L.months.map((m, i) => {
+            const v = s.series[p]?.[i];
+            return v == null ? `<td class="lk none" title="${esc(t("lakes.nodata"))}">–</td>` : `<td class="lk ${outside(v) ? "bad" : ""}" title="${esc(s.dates[m] || m)}">${v}</td>`;
+        }).join("")}</tr>`).join("");
+        return rows ? `<tr class="lakehead"><td colspan="${L.months.length + 1}">${esc(lake)}</td></tr>${rows}` : "";
+    }).join("");
+    return `<div class="table-wrap"><table class="lakedata"><thead><tr><th class="name">${esc(t("lakes.station"))}</th>${L.months.map((m) => `<th>${m}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function lakeDataSection() {
+    if (!OVERVIEW.lakes.stations.length) return "";
+    const tabs = ["do", "ph", "bod3"].map((p) => `<button class="chip" data-lakeparam="${p}" aria-pressed="${state.lakeParam === p}">${esc(t("lakedata." + p))}</button>`).join("");
+    return `<div class="card" style="margin-top:28px"><h2>${esc(t("sec.lakedata"))}</h2><p class="note" style="margin:4px 0 6px">${esc(t("lakedata.help"))}</p>
+        <div class="chips" role="group">${tabs}</div><div id="lakedata">${lakeDataTable()}</div>
+        <p class="note" style="margin-top:8px">${esc(t("lakes.bodnote"))}</p></div>`;
+}
+
 function weeklySection() {
     const w = WEEKLY, a = w.auto_post;
     const status = a.blocked_demo ? t("weekly.demo") : a.enabled && a.channels.length ? t("weekly.on", { ch: a.channels.join(", ") }) : t("weekly.off");
@@ -389,12 +424,17 @@ function render() {
     document.documentElement.lang = state.lang;
     $("#app").innerHTML = `${hero()}<main class="wrap">${stats()}${mapSection()}
         <div class="grid"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
-        ${compareSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}<footer>${esc(t("foot"))}</footer></main>`;
+        ${compareSection()}${lakeDataSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}<footer><p>${esc(t("foot.formal"))}</p><p>${esc(t("foot"))}</p></footer></main>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
     document.querySelectorAll("[data-filter]").forEach((b) => (b.onclick = () => {
         state.filter = b.dataset.filter;
         document.querySelectorAll("[data-filter]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.filter === state.filter));
         $("#rank-list").innerHTML = rankRows(); bindRankList();
+    }));
+    document.querySelectorAll("[data-lakeparam]").forEach((b) => (b.onclick = () => {
+        state.lakeParam = b.dataset.lakeparam;
+        document.querySelectorAll("[data-lakeparam]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.lakeparam === state.lakeParam));
+        $("#lakedata").innerHTML = lakeDataTable();
     }));
     document.querySelectorAll("tr.click").forEach((tr) => {
         tr.onclick = () => selectGhat(tr.dataset.ghat);

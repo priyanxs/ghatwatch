@@ -53,11 +53,11 @@ def build_weekly_report(ranking: pd.DataFrame, is_mock: bool, today: date | None
     left, tips = days_left(today), tips_for(today)
     score = round(top.risk_score)
 
-    en = [f"📊 GhatWatch weekly update · {today:%d %b %Y}",
+    en = [f"GhatWatch weekly update · {today:%d %b %Y}",
           f"Highest risk: {top.ghat} ({score}/100, {top.risk_level}). {high} of {n} ghats high risk · "
           f"{gap}% of readings missing.",
           "Historical records, not live readings."]
-    hi = [f"📊 GhatWatch साप्ताहिक अपडेट · {today:%d/%m/%Y}",
+    hi = [f"GhatWatch साप्ताहिक अपडेट · {today:%d/%m/%Y}",
           f"सर्वाधिक जोखिम: {GHAT_HI.get(top.ghat, top.ghat)} ({score}/100, {LEVEL_HI[top.risk_level]}). "
           f"{n} में से {high} घाट उच्च जोखिम · {gap}% माप अनुपलब्ध।",
           "ऐतिहासिक रिकॉर्ड, लाइव माप नहीं।"]
