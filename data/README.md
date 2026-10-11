@@ -14,6 +14,7 @@ One row per ghat / year / phase:
 | `bod_mg_l` | BOD, mg/L |
 | `source` | report the value came from (shown in the evidence trail) |
 | `page` | PDF page number in that report |
+| `source_url` | optional: web link to the report (`https://…`). Shown as a clickable link in the evidence table; for `.pdf` links it opens at the cited `page`. Anything that is not an `http(s)` link is ignored. |
 
 `do_mg_l` and `bod_mg_l` may contain lab strings: `<2` (below detection limit), `BDL`, `NA`, blanks.
 Unreadable or missing values are never counted as clean water.

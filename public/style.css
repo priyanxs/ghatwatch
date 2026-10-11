@@ -155,3 +155,6 @@ footer { margin: 36px 0 0; padding: 22px 0 40px; color: var(--muted); font-size:
     .top-card { grid-template-columns: minmax(0, 1fr); } .ring { justify-self: start; }
     .hero { padding-bottom: 90px; }
 }
+
+td a { color: var(--teal); font-weight: 600; text-decoration: none; }
+td a:hover { text-decoration: underline; }

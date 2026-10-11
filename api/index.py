@@ -36,7 +36,7 @@ from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
 app = FastAPI(title="GhatWatch API", version="1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 READING_COLUMNS = ["year", "phase", "do_raw", "bod_raw", "do_value", "bod_value",
-                   "do_status", "bod_status", "source", "page"]
+                   "do_status", "bod_status", "source", "page", "source_url"]
 
 
 def clean(value):

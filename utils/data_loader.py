@@ -2,7 +2,7 @@
 
 Expected CSV (``data/bhopal_water_quality.csv``), one row per ghat / year / phase:
 
-    ghat, year, phase, do_mg_l, bod_mg_l, source, page
+    ghat, year, phase, do_mg_l, bod_mg_l, source, page [, source_url]
 
 ``do_mg_l`` and ``bod_mg_l`` may hold messy lab strings such as ``"<2"`` (below detection
 limit), ``"BDL"``, ``"NA"`` or ``""``. Nothing here decides whether water is clean; the
@@ -50,6 +50,7 @@ COLUMN_ALIASES = {
     "bod": "bod_mg_l", "bod_mg/l": "bod_mg_l",
     "station": "ghat", "location": "ghat",
     "pdf_page": "page", "page_no": "page", "report": "source",
+    "url": "source_url", "link": "source_url", "report_url": "source_url",
 }
 REQUIRED = ["ghat", "year", "phase", "do_mg_l", "bod_mg_l"]
 
@@ -103,11 +104,14 @@ def _clean(raw: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
     if missing_cols:
         raise ValueError(f"CSV is missing required column(s): {', '.join(missing_cols)}")
 
-    for optional in ("source", "page"):
+    for optional in ("source", "page", "source_url"):
         if optional not in df.columns:
             df[optional] = "Not recorded"
     df["source"] = df["source"].astype(str).str.strip().replace("", "Not recorded")
     df["page"] = df["page"].astype(str).str.strip().replace("", "Not recorded")
+    # Only real web links are kept, so a bad cell can never become a script link on the page.
+    df["source_url"] = df["source_url"].astype(str).str.strip()
+    df.loc[~df["source_url"].str.lower().str.match(r"^https?://\S+$"), "source_url"] = ""
 
     df["ghat"] = df["ghat"].astype(str).str.strip()
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
@@ -138,7 +142,7 @@ def _clean(raw: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
                      "treated as missing, never as clean.")
 
     return df[["ghat", "year", "phase", "do_raw", "bod_raw", "do_value", "do_qual",
-               "bod_value", "bod_qual", "source", "page"]]
+               "bod_value", "bod_qual", "source", "page", "source_url"]]
 
 
 def _complete_grid(df: pd.DataFrame) -> pd.DataFrame:
@@ -153,6 +157,7 @@ def _complete_grid(df: pd.DataFrame) -> pd.DataFrame:
     absent = out["source"].isna()
     out.loc[absent, ["do_raw", "bod_raw"]] = NO_RECORD
     out.loc[absent, ["source", "page"]] = NO_RECORD
+    out["source_url"] = out["source_url"].fillna("")
     for prefix in ("do", "bod"):
         out[f"{prefix}_qual"] = out[f"{prefix}_qual"].fillna("")
     return out

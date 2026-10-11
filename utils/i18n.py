@@ -95,6 +95,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "d.evidence": {"en": "Evidence trail (source report and PDF page)",
                    "hi": "साक्ष्य ट्रेल (स्रोत रिपोर्ट और PDF पृष्ठ)"},
     "e.source": {"en": "Source report", "hi": "स्रोत रिपोर्ट"},
+    "e.open": {"en": "Open the source report in a new tab", "hi": "स्रोत रिपोर्ट नई टैब में खोलें"},
     "e.page": {"en": "PDF page", "hi": "PDF पृष्ठ"},
     "e.do": {"en": "DO as recorded", "hi": "दर्ज DO"},
     "e.bod": {"en": "BOD as recorded", "hi": "दर्ज BOD"},

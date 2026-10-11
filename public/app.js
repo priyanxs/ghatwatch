@@ -110,10 +110,18 @@ function latestTiles(d) {
     return `<div class="card"><h2>${esc(t("sec.latest", { y: year }))}</h2><div class="tiles">${tiles.join("")}</div></div>`;
 }
 
+/** Source report name; a link when the CSV gave a web address, jumping to the cited page for PDFs. */
+function sourceCell(r) {
+    const name = esc(label("val", r.source));
+    if (!/^https?:\/\//i.test(r.source_url || "")) return name;
+    const page = /^\d+$/.test(String(r.page)) && /\.pdf($|\?)/i.test(r.source_url) ? `#page=${r.page}` : "";
+    return `<a href="${esc(r.source_url + page)}" target="_blank" rel="noopener noreferrer" title="${esc(t("e.open"))}">${name} ↗</a>`;
+}
+
 function readingsTable(d) {
     const rows = d.readings.map((r) => `<tr><td>${r.year}</td><td>${esc(label("phase", r.phase))}</td>
         <td>${readingCell(r.do_raw, r.do_status)}</td><td>${readingCell(r.bod_raw, r.bod_status)}</td>
-        <td>${esc(label("val", r.source))}</td><td>${esc(label("val", r.page))}</td></tr>`).join("");
+        <td>${sourceCell(r)}</td><td>${esc(label("val", r.page))}</td></tr>`).join("");
     return `<div class="table-wrap"><table><thead><tr><th>${esc(t("c.year"))}</th><th>${esc(t("c.phase"))}</th>
         <th>${esc(t("c.do"))}</th><th>${esc(t("c.bod"))}</th><th>${esc(t("e.source"))}</th><th>${esc(t("e.page"))}</th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
