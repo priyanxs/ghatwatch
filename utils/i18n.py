@@ -113,6 +113,22 @@ STRINGS: dict[str, dict[str, str]] = {
                   "hi": "PDF केवल अंग्रेज़ी में बनेगा: हिन्दी जोड़ने के लिए `uharfbuzz` और देवनागरी फ़ॉन्ट इंस्टॉल करें।"},
     "b.download": {"en": "⬇️ Download PDF Brief", "hi": "⬇️ PDF सार डाउनलोड करें"},
     "b.error": {"en": "Could not build the PDF brief: {e}", "hi": "PDF सार नहीं बन सका: {e}"},
+    # --- simple single-page layout (public frontend)
+    "top.summary": {"en": "<b>{high} of {n} ghats</b> are high risk · {breaches} CPCB breaches on record · "
+                          "{gap}% of readings missing",
+                    "hi": "<b>{n} में से {high} घाट</b> उच्च जोखिम वाले हैं · रिकॉर्ड में CPCB उल्लंघन {breaches} · "
+                          "{gap}% माप अनुपलब्ध"},
+    "r.line": {"en": "DO below limit {do} of {dt} · BOD above limit {bod} of {bt} · {gap}% data missing",
+               "hi": "DO सीमा से कम {do}/{dt} · BOD सीमा से अधिक {bod}/{bt} · {gap}% डेटा अनुपलब्ध"},
+    "h.pick": {"en": "Tap a ghat to see its details below.", "hi": "नीचे विवरण देखने के लिए किसी घाट को चुनें।"},
+    "sec.why": {"en": "What the tests show", "hi": "जाँच क्या बताती है"},
+    "sec.do": {"en": "What to do", "hi": "क्या करें"},
+    "sec.trend": {"en": "How it changed over the years", "hi": "वर्षों में बदलाव"},
+    "sec.table": {"en": "All readings and their sources", "hi": "सभी माप और उनके स्रोत"},
+    "sec.brief": {"en": "Action brief", "hi": "कार्य-सार"},
+    "b.other": {"en": "Also in हिन्दी", "hi": "English में भी देखें"},
+    "tr.help": {"en": "Dotted line = CPCB limit. A break in a line means no reading that year.",
+                "hi": "बिंदीदार रेखा = CPCB सीमा। रेखा में टूटन का अर्थ है उस वर्ष कोई माप नहीं।"},
     "err.load": {"en": "Could not load this ghat ({e}). Please try again.",
                  "hi": "यह घाट लोड नहीं हो सका ({e})। कृपया पुनः प्रयास करें।"},
     # --- value labels
