@@ -36,7 +36,6 @@ code { background: #E6F0F2; border-radius: 4px; padding: 1px 5px; font-size: .88
 .hero .sub { margin-top: 10px; color: #BFE3EA; max-width: 640px; }
 .hero svg.wave { position: absolute; left: 0; bottom: -1px; width: 100%; height: 56px; display: block; }
 
-.notices { margin-top: -66px; position: relative; display: grid; gap: 8px; }
 .notice { padding: 11px 16px; border-radius: 12px; font-size: .9rem; font-weight: 600; background: var(--amber-bg); color: var(--amber-ink);
           border: 1px solid #FCD9A0; box-shadow: var(--shadow); }
 .notice.info { background: #fff; color: var(--muted); font-weight: 500; border-color: var(--line); }
@@ -161,3 +160,14 @@ td a:hover { text-decoration: underline; }
 
 .links { margin: 0; padding-left: 20px; } .links li { margin: 6px 0; }
 .links a { color: var(--teal); font-weight: 600; text-decoration: none; } .links a:hover { text-decoration: underline; }
+
+.hero .countdown { margin-top: 14px; display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(245, 158, 11, .2); color: #FCD34D; font-weight: 700; font-size: .92rem; }
+.trend { grid-column: 2 / 4; font-size: .76rem; font-weight: 700; }
+.trend.worse { color: var(--red); } .trend.better { color: var(--green); } .trend.same, .trend.na { color: var(--muted); font-weight: 600; }
+.btn.small { padding: 9px 16px; font-size: .88rem; margin-top: 14px; }
+.btn.wa { background: linear-gradient(135deg, #25D366, #1DA851); color: #fff; box-shadow: 0 6px 16px rgba(37, 211, 102, .3); margin-left: 10px; }
+.caption-box { background: #F4FAFB; border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.caption-box .cap-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.caption-box pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: .88rem/1.55 var(--font); }
+.copy { border: 1px solid var(--line); background: #fff; color: var(--teal); font: 700 .8rem var(--font); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.copy:hover { background: #ECF8FA; }

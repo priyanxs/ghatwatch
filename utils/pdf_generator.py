@@ -20,7 +20,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import FILL_NON_ZERO
 from reportlab.platypus import Flowable, Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from utils.risk_engine import BREACH, DISCLAIMER_EN, DISCLAIMER_HI
+from utils.risk_engine import BREACH, DISCLAIMER_EN, DISCLAIMER_HI, LEVEL_HI
 
 try:
     import uharfbuzz as hb
@@ -282,6 +282,62 @@ def build_pdf(ghat: str, summary: dict, brief: dict, readings: pd.DataFrame,
                                 topMargin=14 * mm, bottomMargin=12 * mm,
                                 title=f"GhatWatch brief - {ghat}", author="GhatWatch")
         doc.build(_story(summary, brief, readings, rank, n_ghats, is_mock, k))
+        if doc.page <= 1:
+            break
+    return buf.getvalue()
+
+
+def _city_story(rows: list[dict], is_mock: bool, k: float) -> list:
+    """One page ranking every ghat, with the first recommended action, in English then Hindi."""
+    def st(**kw):
+        return ParagraphStyle("c", **{"fontName": "Helvetica", "textColor": INK, "fontSize": 8.5 * k, "leading": 11 * k, **kw})
+    hindi = hindi_available()
+    titles = [Paragraph("GhatWatch - Visarjan Readiness Brief (all ghats)", st(fontName="Helvetica-Bold", fontSize=16 * k, leading=20 * k))]
+    if hindi:
+        titles.append(HindiText("घाटवॉच - विसर्जन तैयारी सार (सभी घाट)", size=12 * k, bold=True))
+    titles.append(Paragraph(f"Bhopal Municipal Corporation &nbsp;|&nbsp; Prepared {date.today():%d %b %Y}", st(fontSize=8 * k, textColor=MUTED)))
+    story: list = []
+    if LOGO.exists():
+        size = 18 * mm * k
+        head = Table([[Image(str(LOGO), size, size, mask="auto"), titles]], colWidths=[size + 4 * mm, None], hAlign="LEFT")
+        head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+        story.append(head)
+    else:
+        story += titles
+    story += [Spacer(1, 4 * k), Paragraph(f"<i>{DISCLAIMER_EN}</i>", st(fontSize=8 * k, textColor=MUTED))]
+    if hindi:
+        story.append(HindiText(DISCLAIMER_HI, size=8 * k, colour=MUTED))
+    if is_mock:
+        story.append(Paragraph("<b>DEMO DATA:</b> values are generated for demonstration, not real measurements.",
+                               st(fontSize=8 * k, textColor=LEVEL_COLOUR["High"])))
+    story.append(Spacer(1, 5 * k))
+    data = [[Paragraph(f"<b>{h}</b>", st()) for h in ("#", "Ghat", "Level", "Score", "Data gap", "First recommended action")]]
+    for r in rows:
+        col = LEVEL_COLOUR[r["risk_level"]].hexval()[2:]
+        data.append([Paragraph(str(r["rank"]), st()), Paragraph(r["ghat"], st()),
+                     Paragraph(f'<font color="#{col}"><b>{r["risk_level"]}</b></font>', st()),
+                     Paragraph(f'{r["risk_score"]:.0f}', st()), Paragraph(f'{r["gap_pct"]:g}%', st()), Paragraph(r["action_en"], st())])
+    table = Table(data, colWidths=[8 * mm, 36 * mm, 16 * mm, 12 * mm, 16 * mm, 90 * mm], repeatRows=1, hAlign="LEFT")
+    table.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, 0), 0.8, INK), ("LINEBELOW", (0, 1), (-1, -1), 0.3, RULE),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 2),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 3)]))
+    story.append(table)
+    if hindi:
+        story += [Spacer(1, 8 * k), HindiText("घाटों की प्राथमिकता और पहली कार्रवाई", size=11 * k, bold=True)]
+        for r in rows:
+            story.append(HindiText(f'{r["rank"]}. {r["ghat_hi"]} · {LEVEL_HI[r["risk_level"]]} ({r["risk_score"]:.0f}) — {r["action_hi"]}', size=8.8 * k))
+    else:
+        story.append(Paragraph("Hindi section unavailable: install 'uharfbuzz' and a Devanagari font.", st(textColor=MUTED)))
+    return story
+
+
+def build_city_pdf(rows: list[dict], is_mock: bool = False) -> bytes:
+    """Render the one-page city-wide brief; fonts shrink step by step until it fits one page."""
+    for k in (1.0, 0.92, 0.85, 0.78, 0.7):
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=14 * mm,
+                                bottomMargin=12 * mm, title="GhatWatch - Visarjan readiness brief", author="GhatWatch")
+        doc.build(_city_story(rows, is_mock, k))
         if doc.page <= 1:
             break
     return buf.getvalue()

@@ -8,7 +8,7 @@ const LEVEL_COLOUR = { High: "#DC2626", Medium: "#D97706", Low: "#059669" };
 const NO_RECORD = "(no record)";
 
 const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all" };
-let I18N, OVERVIEW;
+let I18N, OVERVIEW, WEEKLY;
 const detailCache = {};
 
 // ---------------------------------------------------------------- helpers
@@ -51,15 +51,10 @@ function hero() {
     return `<header class="hero"><div class="wrap">
         <div class="bar"><img class="logo" src="/icon.png" alt="GhatWatch logo"><div class="brand">Ghat<span>Watch</span></div>
             <div class="lang" role="group" aria-label="Language">${buttons}</div></div>
-        <h1>${esc(t("hero.tag"))}</h1><p class="sub">${esc(t("subtitle"))}</p></div>
+        <h1>${esc(t("hero.tag"))}</h1><p class="sub">${esc(t("subtitle"))}</p>
+        ${OVERVIEW.days_left != null ? `<p class="countdown">⏳ ${esc(t("hero.countdown", { n: OVERVIEW.days_left }))}</p>` : ""}</div>
         <svg class="wave" viewBox="0 0 1440 56" preserveAspectRatio="none" aria-hidden="true">
             <path fill="#EEF6F7" d="M0 32c120 20 240 24 360 8s240-36 360-32 240 28 360 36 240-8 360-24v36H0z"/></svg></header>`;
-}
-
-function notices() {
-    const o = OVERVIEW;
-    return `<div class="notices"><div class="notice">${esc(o.disclaimer[state.lang])}</div>
-        ${o.is_mock ? `<div class="notice info">${t("demo")}</div>` : ""}</div>`;
 }
 
 function stats() {
@@ -73,7 +68,9 @@ function rankCard() {
     const filters = ["all", "High", "Medium", "Low"].map((f) =>
         `<button class="chip" data-filter="${f}" aria-pressed="${state.filter === f}">${esc(f === "all" ? t("f.all") : label("lvl", f))}</button>`).join("");
     return `<div class="card"><h2>${esc(t("h.ranking"))}</h2><p class="lede">${esc(t("h.ranking.sub"))}</p>
-        <div class="chips" role="group">${filters}</div><div class="ghats" id="rank-list">${rankRows()}</div></div>`;
+        <div class="chips" role="group">${filters}</div><div class="ghats" id="rank-list">${rankRows()}</div>
+        <a class="btn small" href="/api/readiness.pdf" download>${esc(t("city.download"))}</a>
+        <p class="note" style="margin-top:6px">${esc(t("city.help"))}</p></div>`;
 }
 
 function rankRows() {
@@ -83,6 +80,7 @@ function rankRows() {
             <span class="rank">${r.rank}</span><span class="gname">${esc(ghatName(r))}</span>
             <span class="badge ${lvl}">${esc(label("lvl", r.risk_level))}</span>
             <span class="meter" role="img" aria-label="${esc(t("r.score"))}: ${Math.round(r.risk_score)} / 100"><i class="${lvl}" style="width:${r.risk_score}%"></i></span>
+            <span class="trend ${r.trend}">${esc(t("trend." + r.trend))}</span>
             <span class="detail">${esc(t("r.line", { do: r.do_breaches, dt: r.do_tested, bod: r.bod_breaches, bt: r.bod_tested, gap: Math.round(r.gap_pct) }))}</span></button>`;
     }).join("");
 }
@@ -134,6 +132,13 @@ function scoreExplanation(s) {
         br: f(s.breach_rate), sev: f(s.severity), det: f(s.deterioration), hi: w.high_at, mid: w.medium_at }));
 }
 
+/** A short, forwardable message: headline, first finding, first action, and a link to this ghat. */
+function whatsappLink(d) {
+    const b = d.brief[state.lang];
+    const msg = `*${b.headline}*\n• ${b.findings[0]}\n• ${b.actions[0]}\n${location.origin}/#${encodeURIComponent(d.ghat)}`;
+    return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+}
+
 function briefCard(d) {
     const cols = [["en", "English", ["Findings", "Recommended actions"]], ["hi", "हिन्दी", ["निष्कर्ष", "अनुशंसित कार्रवाई"]]]
         .map(([code, title, heads]) => `<div class="brief" lang="${code}"><span class="tag">${title}</span>
@@ -141,6 +146,7 @@ function briefCard(d) {
             <h4>${heads[1]}</h4>${list(d.brief[code].actions)}</div>`).join("");
     return `<div class="card"><h2>${esc(t("sec.brief"))}</h2><div class="briefs">${cols}</div>
         <a class="btn" href="/api/ghats/${encodeURIComponent(d.ghat)}/brief.pdf" download>${esc(t("b.download"))}</a>
+        <a class="btn wa" href="${whatsappLink(d)}" target="_blank" rel="noopener noreferrer">${esc(t("share.wa"))}</a>
         <p class="note" style="margin-top:8px">${esc(t("b.note"))}</p></div>`;
 }
 
@@ -186,6 +192,17 @@ function compareSection() {
         <div class="card" style="margin:0"><h3>${esc(t("sec.matrix"))}</h3><p class="note" style="margin-bottom:6px">${esc(t("matrix.help"))}</p>
             <div class="table-wrap"><table class="matrix"><thead><tr><th class="name"></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
             <div class="legend">${legend}</div></div></div>`;
+}
+
+function weeklySection() {
+    const w = WEEKLY, a = w.auto_post;
+    const status = a.blocked_demo ? t("weekly.demo") : a.enabled && a.channels.length ? t("weekly.on", { ch: a.channels.join(", ") }) : t("weekly.off");
+    const box = (code, title) => `<div class="caption-box" lang="${code}"><div class="cap-head"><b>${title}</b>
+        <button class="copy" data-copy="${code}">${esc(t("weekly.copy"))}</button></div><pre>${esc(w["caption_" + code])}</pre></div>`;
+    return `<div class="card" style="margin-top:28px"><h2>${esc(t("weekly.title"))}</h2>
+        <p class="note" style="margin:4px 0 12px">${esc(t("weekly.lede"))}</p>
+        <div class="two" style="margin:0">${box("en", "English")}${box("hi", "हिन्दी")}</div>
+        <p class="note" style="margin-top:10px"><b>${esc(status)}</b></p></div>`;
 }
 
 function sourcesSection() {
@@ -265,9 +282,9 @@ function bindRankList() {
 
 function render() {
     document.documentElement.lang = state.lang;
-    $("#app").innerHTML = `${hero()}<main class="wrap">${notices()}${stats()}
+    $("#app").innerHTML = `${hero()}<main class="wrap">${stats()}
         <div class="grid"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
-        ${compareSection()}${sourcesSection()}<footer>${esc(t("foot"))}</footer></main>`;
+        ${compareSection()}${weeklySection()}${sourcesSection()}<footer>${esc(t("foot"))}</footer></main>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
     document.querySelectorAll("[data-filter]").forEach((b) => (b.onclick = () => {
         state.filter = b.dataset.filter;
@@ -278,6 +295,10 @@ function render() {
         tr.onclick = () => selectGhat(tr.dataset.ghat);
         tr.onkeydown = (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), selectGhat(tr.dataset.ghat));
     });
+    document.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => {
+        try { await navigator.clipboard.writeText(WEEKLY["caption_" + b.dataset.copy]); } catch { return; }
+        const old = b.textContent; b.textContent = t("weekly.copied"); setTimeout(() => (b.textContent = old), 1500);
+    }));
     bindRankList();
     drawCompare();
     return loadDetail();
@@ -290,7 +311,7 @@ function selectGhat(name) {
 
 async function init() {
     try {
-        [I18N, OVERVIEW] = await Promise.all([api("/api/i18n"), api("/api/overview")]);
+        [I18N, OVERVIEW, WEEKLY] = await Promise.all([api("/api/i18n"), api("/api/overview"), api("/api/weekly-report")]);
     } catch (err) {
         $("#app").innerHTML = `<div class="wrap"><div class="notice error" style="margin-top:30px">Could not load GhatWatch data (${esc(err.message)}). Please refresh.</div></div>`;
         return;

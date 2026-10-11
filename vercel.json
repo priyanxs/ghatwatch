@@ -4,5 +4,11 @@
       "includeFiles": "{fonts,assets,data}/**",
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/weekly-post",
+      "schedule": "30 3 * * 1"
+    }
+  ]
 }

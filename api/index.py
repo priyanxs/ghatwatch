@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # make `utils` importable inside the serverless function
 
 import numpy as np  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, Header, HTTPException  # noqa: E402
 from fastapi.responses import Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
@@ -32,7 +32,10 @@ from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
 from utils.data_loader import load_data  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
+from utils import publish as social  # noqa: E402
+from utils.pdf_generator import build_city_pdf  # noqa: E402
 from utils.sources import REFERENCE_LINKS, SOURCE_REPORTS  # noqa: E402
+from utils.weekly import build_weekly_report, days_left  # noqa: E402
 
 app = FastAPI(title="GhatWatch API", version="1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -69,6 +72,25 @@ def find_ghat(name: str):
     return data[data.ghat == name], match.iloc[0]
 
 
+def trends(data) -> dict:
+    """Per ghat: did the latest year get better or worse than the year before (share of tested readings that breach)?"""
+    years = sorted(int(y) for y in data.year.unique())
+    out = {}
+    for ghat, g in data.groupby("ghat"):
+        rates = []
+        for y in years[-2:]:
+            rows = g[g.year == y]
+            tested = int((rows.do_status != engine.NO_DATA).sum() + (rows.bod_status != engine.NO_DATA).sum())
+            breaches = int((rows.do_status == engine.BREACH).sum() + (rows.bod_status == engine.BREACH).sum())
+            rates.append(breaches / tested if tested else None)
+        if len(rates) < 2 or None in rates:
+            out[ghat] = "na"
+        else:
+            diff = rates[1] - rates[0]
+            out[ghat] = "worse" if diff > 0.05 else "better" if diff < -0.05 else "same"
+    return out
+
+
 def timeline(data) -> dict:
     """Per ghat, year and phase: one overall status for the year-by-year grid.
 
@@ -100,8 +122,10 @@ def overview():
     readings = len(data) * 2
     gaps = int((data.do_status == engine.NO_DATA).sum() + (data.bod_status == engine.NO_DATA).sum())
     breaches = int((data.do_status == engine.BREACH).sum() + (data.bod_status == engine.BREACH).sum())
-    rows = [{**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi")} for r in ranking.to_dict("records")]
+    trend = trends(data)
+    rows = [{**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
     return clean({
+        "days_left": days_left(),
         "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
         "years": sorted(int(y) for y in data.year.unique()),
         "timeline": timeline(data),
@@ -146,6 +170,49 @@ def ghat_brief_pdf(ghat: str):
     slug = re.sub(r"[^a-z0-9]+", "_", ghat.lower()).strip("_")
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="ghatwatch_{slug}.pdf"'})
+
+
+@app.get("/api/readiness.pdf")
+def readiness_pdf():
+    """One page for the whole city: every ghat ranked, with its first recommended action in both languages."""
+    _, ranking, is_mock, _ = state()
+    rows = []
+    for r in ranking.to_dict("records"):
+        brief = engine.build_brief(r["ghat"], r)
+        rows.append({**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi"),
+                     "action_en": brief["en"]["actions"][0], "action_hi": brief["hi"]["actions"][0]})
+    return Response(build_city_pdf(rows, is_mock), media_type="application/pdf",
+                    headers={"Content-Disposition": 'attachment; filename="ghatwatch_city_brief.pdf"'})
+
+
+def auto_post_status(is_mock: bool) -> dict:
+    return {"enabled": social.enabled(), "channels": social.configured_channels(), "blocked_demo": is_mock}
+
+
+@app.get("/api/weekly-report")
+def weekly_report():
+    """Preview of this week's captions (English + Hindi). Never posts anything."""
+    _, ranking, is_mock, _ = state()
+    return {**build_weekly_report(ranking, is_mock), "auto_post": auto_post_status(is_mock)}
+
+
+@app.get("/api/cron/weekly-post")
+def weekly_post(authorization: str | None = Header(default=None)):
+    """Called by Vercel Cron every Monday. Posts only when CRON_SECRET matches, posting is enabled and the data is real."""
+    secret = os.environ.get("CRON_SECRET", "")
+    if not secret:
+        raise HTTPException(status_code=503, detail="CRON_SECRET is not set, so this endpoint is disabled.")
+    if authorization != f"Bearer {secret}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    _, ranking, is_mock, _ = state()
+    report = build_weekly_report(ranking, is_mock)
+    status = auto_post_status(is_mock)
+    if is_mock:
+        return {"posted": False, "reason": "demo data is never posted", **status}
+    if not status["enabled"] or not status["channels"]:
+        return {"posted": False, "reason": "dry run: POST_ENABLED is not true or no channel is configured", **status}
+    results = social.publish(report)
+    return {"posted": any(r["ok"] for r in results), "results": results, "date": report["date"]}
 
 
 # Local development only: on Vercel the static frontend is served by the platform.

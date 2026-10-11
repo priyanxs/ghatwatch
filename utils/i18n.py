@@ -164,6 +164,27 @@ STRINGS: dict[str, dict[str, str]] = {
                    "कार्रवाई से पहले स्थल पर जाँच करें।"},
     "tr.offline": {"en": "Charts could not be loaded (check the internet connection). The tables still show every reading.",
                    "hi": "चार्ट लोड नहीं हो सके (इंटरनेट कनेक्शन जाँचें)। तालिकाओं में हर माप अब भी दिख रहा है।"},
+    # --- unique features
+    "hero.countdown": {"en": "{n} days to Durga Visarjan · 20 Oct 2026", "hi": "दुर्गा विसर्जन में {n} दिन · 20 अक्टूबर 2026"},
+    "trend.worse": {"en": "▲ worse than last year", "hi": "▲ पिछले वर्ष से बदतर"},
+    "trend.better": {"en": "▼ better than last year", "hi": "▼ पिछले वर्ष से बेहतर"},
+    "trend.same": {"en": "● about the same as last year", "hi": "● पिछले वर्ष के लगभग समान"},
+    "trend.na": {"en": "no year-on-year data", "hi": "वर्ष-दर-वर्ष डेटा नहीं"},
+    "city.download": {"en": "⬇️ City-wide brief (PDF)", "hi": "⬇️ पूरे शहर का सार (PDF)"},
+    "city.help": {"en": "One page ranking all ghats with the first action for each, in English and Hindi.",
+                  "hi": "एक पृष्ठ में सभी घाटों की रैंकिंग और हर घाट की पहली कार्रवाई, अंग्रेज़ी और हिन्दी में।"},
+    "share.wa": {"en": "Share on WhatsApp", "hi": "WhatsApp पर भेजें"},
+    "weekly.title": {"en": "Weekly public update", "hi": "साप्ताहिक सार्वजनिक अपडेट"},
+    "weekly.lede": {"en": "Written automatically from the latest ranking, with three tips to avoid common mistakes. "
+                          "Posted every Monday once social channels are connected.",
+                    "hi": "नवीनतम रैंकिंग से अपने-आप लिखा जाता है, सामान्य गलतियों से बचने के तीन सुझावों के साथ। "
+                          "सोशल चैनल जुड़ने पर हर सोमवार पोस्ट होता है।"},
+    "weekly.copy": {"en": "Copy", "hi": "कॉपी करें"},
+    "weekly.copied": {"en": "Copied ✓", "hi": "कॉपी हुआ ✓"},
+    "weekly.off": {"en": "Auto-posting is off: nothing is published until channels are connected and enabled.",
+                   "hi": "ऑटो-पोस्टिंग बंद है: चैनल जुड़ने और चालू होने तक कुछ प्रकाशित नहीं होता।"},
+    "weekly.on": {"en": "Auto-posting is on for: {ch}.", "hi": "ऑटो-पोस्टिंग चालू है: {ch}।"},
+    "weekly.demo": {"en": "Demo data is never posted automatically.", "hi": "डेमो डेटा कभी अपने-आप पोस्ट नहीं होता।"},
     "err.load": {"en": "Could not load this ghat ({e}). Please try again.",
                  "hi": "यह घाट लोड नहीं हो सका ({e})। कृपया पुनः प्रयास करें।"},
     # --- value labels
