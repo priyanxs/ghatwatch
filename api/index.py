@@ -68,6 +68,21 @@ def find_ghat(name: str):
     return data[data.ghat == name], match.iloc[0]
 
 
+def timeline(data) -> dict:
+    """Per ghat, year and phase: one overall status for the year-by-year grid.
+
+    BREACH if DO or BOD breached; otherwise NO DATA if either is missing or inconclusive;
+    otherwise PASS. Missing data therefore never shows up as a pass.
+    """
+    out: dict = {}
+    for r in data.itertuples():
+        pair = {r.do_status, r.bod_status}
+        status = (engine.BREACH if engine.BREACH in pair
+                  else engine.NO_DATA if engine.NO_DATA in pair else engine.PASS)
+        out.setdefault(r.ghat, {}).setdefault(str(int(r.year)), {})[r.phase] = status
+    return out
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "hindi_pdf": hindi_available()}
@@ -86,6 +101,8 @@ def overview():
     breaches = int((data.do_status == engine.BREACH).sum() + (data.bod_status == engine.BREACH).sum())
     rows = [{**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi")} for r in ranking.to_dict("records")]
     return clean({
+        "years": sorted(int(y) for y in data.year.unique()),
+        "timeline": timeline(data),
         "is_mock": is_mock,
         "notes": notes,
         "disclaimer": {"en": engine.DISCLAIMER_EN, "hi": engine.DISCLAIMER_HI},
