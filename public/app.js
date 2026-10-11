@@ -114,8 +114,9 @@ function latestTiles(d) {
 function sourceCell(r) {
     const name = esc(label("val", r.source));
     if (!/^https?:\/\//i.test(r.source_url || "")) return name;
-    const page = /^\d+$/.test(String(r.page)) && /\.pdf($|\?)/i.test(r.source_url) ? `#page=${r.page}` : "";
-    return `<a href="${esc(r.source_url + page)}" target="_blank" rel="noopener noreferrer" title="${esc(t("e.open"))}">${name} ↗</a>`;
+    const demo = /^MOCK/.test(r.source);  // demo page numbers are illustrative, so never jump to them
+    const page = !demo && /^\d+$/.test(String(r.page)) && /\.pdf($|\?)/i.test(r.source_url) ? `#page=${r.page}` : "";
+    return `<a href="${esc(r.source_url + page)}" target="_blank" rel="noopener noreferrer" title="${esc(t(demo ? "e.open.demo" : "e.open"))}">${name} ↗</a>`;
 }
 
 function readingsTable(d) {

@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from utils.sources import report_for_year
+from utils.sources import DEMO_LINKS, report_for_year
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "bhopal_water_quality.csv"
 
@@ -209,6 +209,7 @@ def generate_mock_data(seed: int = 7) -> pd.DataFrame:
                     "do_mg_l": f"{max(do, 0.5):.1f}", "bod_mg_l": f"{max(bod, 0.6):.1f}",
                     "source": f"MOCK - Bhopal Lakes Monitoring Report {year}",
                     "page": str(page_base + (1 if post else 0)),
+                    "source_url": DEMO_LINKS.get(year, ""),
                 })
     df = pd.DataFrame(rows)
 
