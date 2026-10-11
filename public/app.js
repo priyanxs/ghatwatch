@@ -3,11 +3,19 @@
 "use strict";
 
 const PHASES = ["Pre-Visarjan", "During", "Post-Visarjan"];
-const PHASE_STYLE = { "Pre-Visarjan": ["#0E7490", "solid"], "During": ["#F59E0B", "dash"], "Post-Visarjan": ["#059669", "dot"] };
-const LEVEL_COLOUR = { High: "#DC2626", Medium: "#D97706", Low: "#059669" };
+const PHASE_STYLE = { "Pre-Visarjan": ["#1F5A8C", "solid"], "During": ["#B7570B", "dash"], "Post-Visarjan": ["#1E7B4F", "dot"] };
+const LEVEL_COLOUR = { High: "#B42318", Medium: "#B7570B", Low: "#1E7B4F" };
 const NO_RECORD = "(no record)";
 
-const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all", lakeParam: "do" };   // state.ghat is a ghat id (slug)
+const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all", lakeParam: "do",
+    size: localStorage.getItem("gw-size") || "", contrast: localStorage.getItem("gw-contrast") === "1" };
+/** Text size and high-contrast preferences (accessibility): applied to the page and remembered. */
+function applyPrefs() {
+    document.documentElement.classList.remove("fs-lg", "fs-xl");
+    if (state.size) document.documentElement.classList.add("fs-" + state.size);
+    document.body.classList.toggle("hc", state.contrast);
+}
+const ink = () => (state.contrast ? "#FFFFFF" : "#1B2733");   // state.ghat is a ghat id (slug)
 let I18N, OVERVIEW, WEEKLY;
 const detailCache = {};
 
@@ -48,11 +56,13 @@ const list = (items) => `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}<
 const phRange = () => `${OVERVIEW.limits.ph_min} to ${OVERVIEW.limits.ph_max}`;
 
 // ---------------------------------------------------------------- page blocks
-function hero() {
-    const buttons = Object.entries(I18N.languages)
-        .map(([code, name]) => `<button data-lang="${code}" aria-pressed="${code === state.lang}">${esc(name)}</button>`).join("");
-    const periods = OVERVIEW.periods, mock = OVERVIEW.is_mock;
-    const asOf = new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(state.lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" });
+function siteHeader() {
+    const periods = OVERVIEW.periods, mock = OVERVIEW.is_mock, lang = state.lang;
+    const asOf = new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const langBtns = Object.entries(I18N.languages).map(([code, name]) => `<button class="ubtn" data-lang="${code}" aria-pressed="${code === lang}" lang="${code}">${esc(name)}</button>`).join("");
+    const sizeBtns = [["", "A"], ["lg", "A+"], ["xl", "A++"]].map(([v, l]) => `<button class="ubtn" data-size="${v}" aria-pressed="${state.size === v}" aria-label="${esc(t("gov.textsize"))} ${l}">${l}</button>`).join("");
+    const nav = [["overview", "nav.overview"], ["ranking", "nav.ranking"], ["compare", "nav.compare"], ["lakes", "nav.lakes"], ["limits", "nav.limits"], ["sources", "nav.sources"]]
+        .map(([id, k]) => `<a href="#${id}" data-nav="${id}">${esc(t(k))}</a>`).join("");
     const facts = [
         [t("hdr.prepared"), t("hdr.prepared.v")],
         [t("hdr.data"), mock ? t("hdr.data.demo") : t("hdr.data.v", { from: periods[0].year, to: periods[periods.length - 1].year })],
@@ -61,22 +71,25 @@ function hero() {
         [t("hdr.status"), mock ? t("hdr.strip.demo").split(":")[0] : t("hdr.status.v")],
         [t("hdr.asof"), asOf],
         ...(OVERVIEW.days_left != null ? [[t("hdr.event"), t("hdr.event.v", { n: OVERVIEW.days_left })]] : []),
-    ].map(([k, v]) => `<div class="fact"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
-    return `<header class="hero">
-        <div class="strip ${mock ? "demo" : ""}"><div class="wrap">${esc(mock ? t("hdr.strip.demo") : t("hdr.strip"))}</div></div>
-        <div class="wrap">
-        <div class="bar"><img class="logo" src="/icon.png" alt="GhatWatch logo"><div class="brand">GhatWatch</div>
-            <div class="lang" role="group" aria-label="Language">${buttons}</div></div>
-        <h1>${esc(t("hdr.title"))}</h1><p class="sub">${esc(t("hdr.sub"))}</p>
-        <dl class="facts">${facts}</dl></div>
-        <svg class="wave" viewBox="0 0 1440 56" preserveAspectRatio="none" aria-hidden="true">
-            <path fill="#EEF6F7" d="M0 32c120 20 240 24 360 8s240-36 360-32 240 28 360 36 240-8 360-24v36H0z"/></svg></header>`;
+    ].map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
+    return `<a class="skip" href="#main">${esc(t("gov.skip"))}</a>
+        <div class="utility"><div class="wrap"><div class="grow"></div>
+            <div class="grp" role="group" aria-label="${esc(t("gov.textsize"))}"><span class="lbl">${esc(t("gov.textsize"))}</span>${sizeBtns}</div>
+            <div class="grp"><button class="ubtn" id="hc-toggle" aria-pressed="${state.contrast}">${esc(t("gov.contrast"))}</button><button class="ubtn" id="print-btn">${esc(t("gov.print"))}</button></div>
+            <div class="grp" role="group" aria-label="Language">${langBtns}</div></div></div>
+        <header class="mast"><div class="wrap"><img src="/icon.png" alt="GhatWatch logo">
+            <div><div class="org">${esc(t("hdr.prepared.v"))}</div><h1>${esc(t("hdr.title"))}</h1><p class="sub">${esc(t("hdr.sub"))}</p></div>
+            <div class="asof">${esc(t("hdr.asof"))}<b>${esc(asOf)}</b></div></div></header>
+        <nav class="nav" aria-label="Main">${`<div class="wrap">${nav}</div>`}</nav>
+        <div class="wrap crumbs"><a href="#top">${esc(t("crumb.home"))}</a> &rsaquo; ${esc(t("hdr.title"))}</div>
+        <div class="wrap" id="top"><div class="proto ${mock ? "demo" : ""}" role="note">${esc(mock ? t("hdr.strip.demo") : t("proto.notice"))}</div>
+            <h2 class="heading" style="margin-top:20px" id="overview">${esc(t("doc.title"))}</h2><dl class="docinfo">${facts}</dl></div>`;
 }
 
 function stats() {
     const m = OVERVIEW.metrics;
     const stat = (k, v, cls = "", help = "") => `<div class="stat ${cls}" ${help ? `title="${esc(help)}"` : ""}><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`;
-    return `<div class="stats">${stat(t("m.ghats"), m.ghats)}${stat(t("m.high"), m.high_risk, m.high_risk ? "hot" : "")}
+    return `<h2 class="heading" style="margin-top:26px">${esc(t("sec.key"))}</h2><div class="stats">${stat(t("m.ghats"), m.ghats)}${stat(t("m.high"), m.high_risk, m.high_risk ? "hot" : "")}
         ${stat(t("m.breaches"), m.breaches, "", t("m.breaches.help"))}${stat(t("m.nodata"), `${Math.round(m.no_data_pct)}%`, m.no_data_pct > 10 ? "warm" : "", t("m.nodata.help"))}</div>`;
 }
 
@@ -230,7 +243,7 @@ function compareSection() {
         ${["aeration", "cleaning", "testing"].map((n) => `<td>${needPill(r["need_" + n])}</td>`).join("")}</tr>`).join("");
     const legend = [["c-pass", "lg.pass"], ["c-breach", "lg.breach"], ["c-nodata", "lg.nodata"]]
         .map(([c, k]) => `<span><i class="${c}"></i>${esc(t(k))}</span>`).join("");
-    return `<h2 class="section-title">${esc(t("sec.compare"))}</h2>
+    return `<h2 class="section-title" id="compare">${esc(t("sec.compare"))}</h2>
         ${mapSection()}
         <div class="two" style="margin-top:18px"><div class="card" style="margin:0"><h3>${esc(t("cmp.score"))}</h3><div id="chart-compare" style="min-height:320px"></div></div>
         <div class="card" style="margin:0"><h3>${esc(t("sec.plan"))}</h3><p class="note" style="margin-bottom:8px">${esc(t("plan.help"))}</p>
@@ -244,7 +257,7 @@ function compareSection() {
 function caveatsSection() {
     const sum = (k) => OVERVIEW.ranking.reduce((a, r) => a + r[k], 0);
     const verified = OVERVIEW.is_mock ? "" : `<p class="verified">✔ ${esc(t("sec.verified", { do: sum("do_breaches"), dt: sum("do_tested"), bod: sum("bod_breaches"), bt: sum("bod_tested") }))}</p>`;
-    return `<div class="card" style="margin-top:28px"><h2>${esc(t("sec.caveats"))}</h2><p class="note" style="margin:4px 0 10px">${esc(t("caveats.help"))}</p>
+    return `<div class="card" id="limits" style="margin-top:28px"><h2>${esc(t("sec.caveats"))}</h2><p class="note" style="margin:4px 0 10px">${esc(t("caveats.help"))}</p>
         ${verified}<ul class="caveats">${OVERVIEW.caveats.map((c) => `<li>${esc(c[state.lang])}</li>`).join("")}</ul></div>`;
 }
 
@@ -265,7 +278,7 @@ function lakeDataTable() {
 function lakeDataSection() {
     if (!OVERVIEW.lakes.stations.length) return "";
     const tabs = ["do", "ph", "bod3"].map((p) => `<button class="chip" data-lakeparam="${p}" aria-pressed="${state.lakeParam === p}">${esc(t("lakedata." + p))}</button>`).join("");
-    return `<div class="card" style="margin-top:28px"><h2>${esc(t("sec.lakedata"))}</h2><p class="note" style="margin:4px 0 6px">${esc(t("lakedata.help"))}</p>
+    return `<div class="card" id="lakes" style="margin-top:28px"><h2>${esc(t("sec.lakedata"))}</h2><p class="note" style="margin:4px 0 6px">${esc(t("lakedata.help"))}</p>
         <div class="chips" role="group">${tabs}</div><div id="lakedata">${lakeDataTable()}</div>
         <p class="note" style="margin-top:8px">${esc(t("lakes.bodnote"))}</p></div>`;
 }
@@ -283,7 +296,7 @@ function weeklySection() {
 
 function sourcesSection() {
     const src = OVERVIEW.sources, link = (x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)} ↗</a></li>`;
-    return `<div class="card" style="margin-top:28px"><h2>${esc(t("src.title"))}</h2>
+    return `<div class="card" id="sources" style="margin-top:28px"><h2>${esc(t("src.title"))}</h2>
         <p class="note" style="margin:4px 0 10px">${esc(t(OVERVIEW.is_mock ? "src.demo" : "src.live"))}</p>
         <ul class="links">${src.reports.map(link).join("")}${src.references.map(link).join("")}</ul></div>`;
 }
@@ -336,9 +349,9 @@ function drawMap() {
 }
 
 // ---------------------------------------------------------------- charts
-const AXIS = { gridcolor: "#E6F0F2", fixedrange: true };
-const PLOT_BASE = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", template: "plotly_white",
-    font: { family: "'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif", color: "#0F2A33", size: 12 } };
+const axis = () => ({ gridcolor: state.contrast ? "#555555" : "#DDE3EA", linecolor: state.contrast ? "#FFFFFF" : "#8A99AB", fixedrange: true });
+const plotBase = () => ({ paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", template: state.contrast ? "plotly_dark" : "plotly_white",
+    font: { family: "'Noto Sans', 'Noto Sans Devanagari', sans-serif", color: ink(), size: 12 } });
 const PLOT_CFG = { displayModeBar: false, responsive: true };
 
 /** Plotly comes from a CDN; if it is blocked, say so in place of the charts and keep everything else working. */
@@ -352,12 +365,12 @@ function chartsAvailable() {
 function drawLakeChart(d) {
     const el = $("#chart-lake");
     if (!el) return;
-    const L = OVERVIEW.lakes, stations = L.stations.filter((s) => s.lake === d.lake), colours = ["#0E7490", "#F59E0B", "#059669", "#7C3AED", "#DC2626"];
+    const L = OVERVIEW.lakes, stations = L.stations.filter((s) => s.lake === d.lake), colours = ["#1F5A8C", "#B7570B", "#1E7B4F", "#6B3FA0", "#B42318"];
     const traces = stations.map((s, i) => ({ x: L.months, y: s.series.do, name: shortStation(s.name), mode: "lines+markers", connectgaps: false,
         line: { color: colours[i % colours.length], width: s.id === d.nearest_station ? 4 : 2.2 }, marker: { size: 6 },
         customdata: L.months.map((m) => s.dates[m] || ""), hovertemplate: "<b>%{fullData.name}</b><br>%{x} (%{customdata}): %{y} mg/L<extra></extra>" }));
-    Plotly.newPlot(el, traces, { ...PLOT_BASE, title: { text: t("lakes.chart"), font: { size: 14 }, x: 0.02 },
-        xaxis: { ...AXIS, type: "category", categoryorder: "array", categoryarray: L.months }, yaxis: { ...AXIS, title: "mg/L", rangemode: "tozero" },
+    Plotly.newPlot(el, traces, { ...plotBase(), title: { text: t("lakes.chart"), font: { size: 14 }, x: 0.02 },
+        xaxis: { ...axis(), type: "category", categoryorder: "array", categoryarray: L.months }, yaxis: { ...axis(), title: "mg/L", rangemode: "tozero" },
         shapes: [hline(OVERVIEW.limits.do_min)], annotations: [{ xref: "paper", x: 1, y: 1, yref: "paper", yanchor: "bottom", xanchor: "right", text: t("tr.lim.do", { v: OVERVIEW.limits.do_min }), showarrow: false, font: { size: 11 } }],
         height: 300, margin: { l: 44, r: 8, t: 50, b: 40 }, legend: { orientation: "h", y: -0.2 }, hovermode: "x unified" }, PLOT_CFG);
 }
@@ -375,13 +388,13 @@ function drawTrend(el, readings, param, title, limitShapes, limitText) {
             hovertemplate: `<b>${esc(name)}</b><br>%{x}: %{customdata}<extra></extra>`,
         };
     });
-    Plotly.newPlot(el, traces, { ...PLOT_BASE, title: { text: title, font: { size: 14 }, x: 0.02 },
-        xaxis: { ...AXIS, type: "category", categoryorder: "array", categoryarray: keys, tickangle: -30 },
-        yaxis: { ...AXIS, title: param === "ph" ? "pH" : "mg/L", rangemode: param === "ph" ? "normal" : "tozero" },
+    Plotly.newPlot(el, traces, { ...plotBase(), title: { text: title, font: { size: 14 }, x: 0.02 },
+        xaxis: { ...axis(), type: "category", categoryorder: "array", categoryarray: keys, tickangle: -30 },
+        yaxis: { ...axis(), title: param === "ph" ? "pH" : "mg/L", rangemode: param === "ph" ? "normal" : "tozero" },
         shapes: limitShapes, annotations: [{ xref: "paper", x: 1, y: 1, yref: "paper", yanchor: "bottom", xanchor: "right", text: limitText, showarrow: false, font: { size: 11 } }],
         height: 320, margin: { l: 44, r: 8, t: 50, b: 70 }, legend: { orientation: "h", y: -0.35 }, hovermode: "x unified" }, PLOT_CFG);
 }
-const hline = (y) => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: y, y1: y, line: { color: "#0F2A33", dash: "dot", width: 1.5 } });
+const hline = (y) => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: y, y1: y, line: { color: ink(), dash: "dot", width: 1.5 } });
 
 /** Horizontal bars, one per ghat, coloured by risk level. Clicking a bar opens that ghat. */
 function drawCompare() {
@@ -391,7 +404,7 @@ function drawCompare() {
         type: "bar", orientation: "h", x: rows.map((r) => r.risk_score), y: rows.map(ghatName), customdata: rows.map((r) => r.id),
         marker: { color: rows.map((r) => LEVEL_COLOUR[r.risk_level]) }, text: rows.map((r) => Math.round(r.risk_score)),
         textposition: "outside", cliponaxis: false, hovertemplate: "%{y}: %{x:.0f} / 100<extra></extra>",
-    }], { ...PLOT_BASE, xaxis: { ...AXIS, range: [0, 100] }, yaxis: { autorange: "reversed", fixedrange: true, automargin: true },
+    }], { ...plotBase(), xaxis: { ...axis(), range: [0, 100] }, yaxis: { autorange: "reversed", fixedrange: true, automargin: true },
         height: 320, margin: { l: 10, r: 30, t: 8, b: 30 }, bargap: 0.35 }, PLOT_CFG);
     el.on("plotly_click", (e) => selectGhat(e.points[0].customdata));
 }
@@ -413,7 +426,7 @@ async function loadDetail() {
     drawTrend($("#chart-do"), d.readings, "do", t("tr.do"), [hline(lim.do_min)], t("tr.lim.do", { v: lim.do_min }));
     drawTrend($("#chart-bod"), d.readings, "bod", t("tr.bod"), [hline(lim.bod_max)], t("tr.lim.bod", { v: lim.bod_max }));
     drawLakeChart(d);
-    drawTrend($("#chart-ph"), d.readings, "ph", t("tr.ph"), [{ type: "rect", xref: "paper", x0: 0, x1: 1, y0: lim.ph_min, y1: lim.ph_max, fillcolor: "rgba(5,150,105,.10)", line: { width: 0 } }],
+    drawTrend($("#chart-ph"), d.readings, "ph", t("tr.ph"), [{ type: "rect", xref: "paper", x0: 0, x1: 1, y0: lim.ph_min, y1: lim.ph_max, fillcolor: "rgba(30,123,79,.14)", line: { width: 0 } }],
         t("tr.lim.ph", { v: phRange() }));
 }
 
@@ -423,10 +436,17 @@ function bindRankList() {
 
 function render() {
     document.documentElement.lang = state.lang;
-    $("#app").innerHTML = `${hero()}<main class="wrap">${stats()}
-        <div class="grid"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
-        ${compareSection()}${lakeDataSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}<footer><p>${esc(t("foot.formal"))}</p><p>${esc(t("foot"))}</p></footer></main>`;
+    $("#app").innerHTML = `${siteHeader()}<main class="wrap" id="main" tabindex="-1">${stats()}
+        <div class="grid" id="ranking"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
+        ${compareSection()}${lakeDataSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}</main>
+        <footer class="site"><div class="wrap"><p>${esc(t("foot.formal"))}</p><p>${esc(t("foot"))}</p>
+            <div class="flinks"><a href="https://github.com/priyanxs/ghatwatch/issues" target="_blank" rel="noopener noreferrer">${esc(t("foot.feedback"))}</a>
+            <a href="https://github.com/priyanxs/ghatwatch" target="_blank" rel="noopener noreferrer">${esc(t("foot.code"))}</a><a href="#top">${esc(t("foot.top"))}</a></div>
+            <p>${esc(t("foot.updated", { d: new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(state.lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" }) }))}</p></div></footer>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
+    document.querySelectorAll("[data-size]").forEach((b) => (b.onclick = () => { state.size = b.dataset.size; localStorage.setItem("gw-size", state.size); applyPrefs(); render(); }));
+    $("#hc-toggle").onclick = () => { state.contrast = !state.contrast; localStorage.setItem("gw-contrast", state.contrast ? "1" : "0"); applyPrefs(); render(); };
+    $("#print-btn").onclick = () => window.print();
     document.querySelectorAll("[data-filter]").forEach((b) => (b.onclick = () => {
         state.filter = b.dataset.filter;
         document.querySelectorAll("[data-filter]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.filter === state.filter));
@@ -465,6 +485,7 @@ async function init() {
         $("#app").innerHTML = `<div class="wrap"><div class="notice error" style="margin-top:30px">Could not load GhatWatch data (${esc(err.message)}). Please refresh.</div></div>`;
         return;
     }
+    applyPrefs();
     const fromHash = decodeURIComponent(location.hash.slice(1));
     state.ghat = OVERVIEW.ranking.some((r) => r.id === fromHash) ? fromHash : OVERVIEW.ranking[0].id;
     render();
