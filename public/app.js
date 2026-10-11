@@ -231,7 +231,8 @@ function compareSection() {
     const legend = [["c-pass", "lg.pass"], ["c-breach", "lg.breach"], ["c-nodata", "lg.nodata"]]
         .map(([c, k]) => `<span><i class="${c}"></i>${esc(t(k))}</span>`).join("");
     return `<h2 class="section-title">${esc(t("sec.compare"))}</h2>
-        <div class="two"><div class="card" style="margin:0"><h3>${esc(t("cmp.score"))}</h3><div id="chart-compare" style="min-height:320px"></div></div>
+        ${mapSection()}
+        <div class="two" style="margin-top:18px"><div class="card" style="margin:0"><h3>${esc(t("cmp.score"))}</h3><div id="chart-compare" style="min-height:320px"></div></div>
         <div class="card" style="margin:0"><h3>${esc(t("sec.plan"))}</h3><p class="note" style="margin-bottom:8px">${esc(t("plan.help"))}</p>
             <div class="table-wrap"><table class="plan"><thead><tr><th class="name"></th><th>${esc(t("need.aeration"))}</th><th>${esc(t("need.cleaning"))}</th><th>${esc(t("need.testing"))}</th></tr></thead>
             <tbody>${plan}</tbody></table></div></div></div>
@@ -422,7 +423,7 @@ function bindRankList() {
 
 function render() {
     document.documentElement.lang = state.lang;
-    $("#app").innerHTML = `${hero()}<main class="wrap">${stats()}${mapSection()}
+    $("#app").innerHTML = `${hero()}<main class="wrap">${stats()}
         <div class="grid"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
         ${compareSection()}${lakeDataSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}<footer><p>${esc(t("foot.formal"))}</p><p>${esc(t("foot"))}</p></footer></main>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
@@ -452,7 +453,9 @@ function render() {
 
 function selectGhat(id) {
     state.ghat = id; location.hash = id; render();
-    if (window.innerWidth <= 1060) $("#detail").scrollIntoView({ behavior: "smooth", block: "start" });
+    // The details sit near the top of the page; picking a ghat from the map, charts or grid further down must show them.
+    const top = $("#detail").getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.7 || window.innerWidth <= 1060) $("#detail").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function init() {
