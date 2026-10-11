@@ -126,9 +126,10 @@ def strings():
 @app.get("/api/overview")
 def overview():
     data, ranking, is_mock, notes = state()
-    readings = len(data) * 2
-    gaps = int((data.do_status == engine.NO_DATA).sum() + (data.bod_status == engine.NO_DATA).sum())
-    breaches = int((data.do_status == engine.BREACH).sum() + (data.bod_status == engine.BREACH).sum())
+    # Headline totals cover every scored reading: DO, BOD and pH for each ghat / period / phase.
+    readings = len(data) * len(engine.PARAMS)
+    gaps = sum(int((data[f"{p}_status"] == engine.NO_DATA).sum()) for p in engine.PARAMS)
+    breaches = sum(int((data[f"{p}_status"] == engine.BREACH).sum()) for p in engine.PARAMS)
     trend, places = trends(data), load_locations()
     rows = [{**r, "location": places.get(r["ghat"]), "id": slugify(r["ghat"]), "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
     return clean({
