@@ -284,7 +284,7 @@ No government system was logged into, scraped or written to.
 
 Built by **Priyanshu Kushwaha**, Sagar Institute of Science and Technology, Gandhinagar, with Claude and Claude Code.
 
-**Team:** _add team name and members here_
+**Team: AI Bros**
 
 ## Licence
 
