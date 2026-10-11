@@ -37,7 +37,6 @@ from utils.clock import today_ist  # noqa: E402
 from utils.data_loader import PHASES, load_data  # noqa: E402
 from utils.lakes import lake_for_water_body, load_lakes, nearest_station  # noqa: E402
 from utils.locations import load_locations  # noqa: E402
-from utils.photos import load_photos  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
 from utils import publish as social  # noqa: E402
 from utils.pdf_generator import build_city_pdf  # noqa: E402
@@ -214,7 +213,6 @@ def ghat_detail(ghat: str):
         "rank": summary["rank"],
         "water_body": next((x for x in rows["water_body"] if x), ""),
         "lake": lake_for_water_body(next((x for x in rows["water_body"] if x), "")),
-        "photo": load_photos().get(lake_for_water_body(next((x for x in rows["water_body"] if x), "")) or ""),
         "nearest_station": nearest_station(ghat, [s for s in load_lakes()["stations"] if s["lake"] == lake_for_water_body(next((x for x in rows["water_body"] if x), ""))]),
         "confidence": next((x for x in rows["confidence"] if x), ""),
         "summary": summary,

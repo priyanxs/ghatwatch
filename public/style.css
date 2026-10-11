@@ -227,28 +227,3 @@ footer.site a { color: #fff; font-size: .86rem; }
     .docinfo > div:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
 }
 body.hc .nav a { color: #fff; } body.hc .nav a:hover, body.hc .nav a:focus-visible { background: #fff; color: #000; }
-
-/* ---------------------------------------------------------------- simpler, airier layout */
-body { line-height: 1.7; }
-.wrap { padding: 0 32px; }
-.card { padding: 24px 28px; } .card + .card { margin-top: 24px; }
-.section-title, .heading { margin: 48px 0 18px; padding-bottom: 8px; }
-.grid { gap: 32px; margin-top: 32px; } .two { gap: 24px; } .stats { gap: 18px; } .stat { padding: 18px 22px; }
-.ghats { gap: 12px; } .ghat { padding: 15px 17px; row-gap: 6px; } .ghat .detail { margin-top: 2px; }
-.chips { margin: 16px 0 14px; } .needs { margin-top: 16px; } .callout { margin-top: 18px; padding: 13px 17px; }
-.tiles { gap: 14px; margin-top: 16px; } .tile { padding: 13px 15px; } .charts { gap: 18px; margin-top: 10px; } .briefs { gap: 22px; margin-top: 16px; }
-.brief { padding: 6px 20px 16px; } .card ul { padding-left: 22px; } .card li { margin: 8px 0; }
-th, td { padding: 10px 13px; } .docinfo dt, .docinfo dd { padding: 11px 15px; } .docinfo { margin-top: 16px; }
-.top-card { gap: 24px; } .verdict { margin-top: 12px; } .rankline { margin-top: 6px; }
-.proto { margin-top: 16px; padding: 12px 16px; } .crumbs { padding-top: 16px; padding-bottom: 6px; }
-details { margin-top: 18px; } summary { padding: 15px 20px; } details > div { padding: 2px 20px 20px; }
-footer.site { margin-top: 56px; } footer.site .wrap { padding-top: 30px; padding-bottom: 34px; }
-.fold { background: var(--card); border: 1px solid var(--line); border-radius: 4px; margin-top: 28px; }
-.fold > summary { font-size: 1.05rem; padding: 18px 24px; } .fold > div { padding: 4px 24px 24px; }
-.card.photo { padding: 0; overflow: hidden; margin: 24px 0 0; }
-.photo img { display: block; width: 100%; height: auto; max-height: 340px; object-fit: cover; background: var(--soft); }
-.photo figcaption { padding: 14px 22px 16px; font-size: .84rem; color: var(--muted); border-top: 1px solid var(--line); }
-.photo figcaption p { margin: 0; } .photo .credit { margin-top: 6px; font-size: .78rem; }
-.photo-none { margin: 18px 2px 0; font-style: italic; }
-@media (max-width: 720px) { .wrap { padding: 0 16px; } .card { padding: 20px 18px; } .section-title, .heading { margin-top: 40px; } .fold > summary { padding: 16px 18px; } .fold > div { padding: 4px 18px 20px; } }
-@media print { .fold > div, details > div { display: block; } .photo img { max-height: 220px; } }

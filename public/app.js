@@ -69,6 +69,7 @@ function siteHeader() {
         [t("hdr.coverage"), t("hdr.coverage.v", { n: OVERVIEW.metrics.ghats, p: periods.length })],
         [t("hdr.standard"), t("hdr.standard.v")],
         [t("hdr.status"), mock ? t("hdr.strip.demo").split(":")[0] : t("hdr.status.v")],
+        [t("hdr.asof"), asOf],
         ...(OVERVIEW.days_left != null ? [[t("hdr.event"), OVERVIEW.days_left === 0 ? t("hdr.event.today") : OVERVIEW.days_left === 1 ? t("hdr.event.one") : t("hdr.event.v", { n: OVERVIEW.days_left })]] : []),
     ].map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
     return `<a class="skip" href="#main">${esc(t("gov.skip"))}</a>
@@ -202,18 +203,6 @@ function briefCard(d) {
         <p class="note" style="margin-top:8px">${esc(t("b.note"))}</p></div>`;
 }
 
-/** Reference photo of the ghat's lake, with its licence credit; or a plain note when no openly licensed photo exists. */
-function photoCard(d, row) {
-    const ph = d.photo;
-    if (!ph) return `<p class="note photo-none">${esc(t("photo.none"))}</p>`;
-    const body = state.lang === "hi" ? ph.body_hi : ph.body_en;
-    return `<figure class="card photo"><img src="${esc(ph.image)}" alt="${esc(body)}" width="1200" height="700" loading="lazy">
-        <figcaption><p>${esc(t("photo.note", { body }))}</p>
-        <p class="credit">${esc(t("photo.credit", { author: ph.author, license: ph.license }))} ·
-            <a href="${esc(ph.source_url)}" target="_blank" rel="noopener noreferrer">${esc(t("photo.src"))}</a> ·
-            <a href="${esc(ph.license_url)}" target="_blank" rel="noopener noreferrer">${esc(t("photo.lic"))}</a></p></figcaption></figure>`;
-}
-
 function detail(d) {
     const s = d.summary, lim = OVERVIEW.limits, brief = d.brief[state.lang], row = rowById(d.id);
     const place = [d.water_body, d.confidence && d.confidence !== "high" ? `match: ${d.confidence}` : ""].filter(Boolean).join(" · ");
@@ -224,7 +213,6 @@ function detail(d) {
             ${s.no_data ? `<div class="callout">${md(t("d.missing", { n: s.no_data, total: s.readings }))}</div>` : ""}
             ${s.floor_applied ? `<div class="callout info">${esc(t("d.floor", { m: OVERVIEW.weights.medium_at }))}</div>` : ""}</div>
             ${ring(s.risk_score, s.risk_level)}</div>
-        ${photoCard(d, row)}
         ${latestTiles(d)}
         ${lakesCard(d)}
         <div class="two" style="margin-top:18px"><div class="card why" style="margin:0"><h3>${esc(t("sec.why"))}</h3>${list(brief.findings)}</div>
@@ -290,9 +278,9 @@ function lakeDataTable() {
 function lakeDataSection() {
     if (!OVERVIEW.lakes.stations.length) return "";
     const tabs = ["do", "ph", "bod3"].map((p) => `<button class="chip" data-lakeparam="${p}" aria-pressed="${state.lakeParam === p}">${esc(t("lakedata." + p))}</button>`).join("");
-    return `<details class="fold" id="lakes"><summary>${esc(t("sec.lakedata"))}</summary><div><p class="note" style="margin:0 0 8px">${esc(t("lakedata.help"))}</p>
+    return `<div class="card" id="lakes" style="margin-top:28px"><h2>${esc(t("sec.lakedata"))}</h2><p class="note" style="margin:4px 0 6px">${esc(t("lakedata.help"))}</p>
         <div class="chips" role="group">${tabs}</div><div id="lakedata">${lakeDataTable()}</div>
-        <p class="note" style="margin-top:10px">${esc(t("lakes.bodnote"))}</p></div></details>`;
+        <p class="note" style="margin-top:8px">${esc(t("lakes.bodnote"))}</p></div>`;
 }
 
 function weeklySection() {
@@ -300,9 +288,10 @@ function weeklySection() {
     const status = a.blocked_demo ? t("weekly.demo") : a.enabled && a.channels.length ? t("weekly.on", { ch: a.channels.join(", ") }) : t("weekly.off");
     const box = (code, title) => `<div class="caption-box" lang="${code}"><div class="cap-head"><b>${title}</b>
         <button class="copy" data-copy="${code}">${esc(t("weekly.copy"))}</button></div><pre>${esc(w["caption_" + code])}</pre></div>`;
-    return `<details class="fold" id="weekly"><summary>${esc(t("weekly.fold"))}</summary><div><p class="note" style="margin:0 0 12px">${esc(t("weekly.lede"))}</p>
+    return `<div class="card" style="margin-top:28px"><h2>${esc(t("weekly.title"))}</h2>
+        <p class="note" style="margin:4px 0 12px">${esc(t("weekly.lede"))}</p>
         <div class="two" style="margin:0">${box("en", "English")}${box("hi", "हिन्दी")}</div>
-        <p class="note" style="margin-top:12px"><b>${esc(status)}</b></p></div></details>`;
+        <p class="note" style="margin-top:10px"><b>${esc(status)}</b></p></div>`;
 }
 
 function sourcesSection() {
@@ -465,7 +454,6 @@ function render() {
             <a href="https://github.com/priyanxs/ghatwatch" target="_blank" rel="noopener noreferrer">${esc(t("foot.code"))}</a><a href="#top">${esc(t("foot.top"))}</a></div>
             <p>${esc(t("foot.updated", { d: new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(state.lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" }) }))}</p></div></footer>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
-    document.querySelectorAll("[data-nav]").forEach((a) => (a.onclick = () => { const el = document.getElementById(a.dataset.nav); if (el && el.tagName === "DETAILS") el.open = true; }));
     document.querySelectorAll("[data-size]").forEach((b) => (b.onclick = () => { state.size = b.dataset.size; localStorage.setItem("gw-size", state.size); applyPrefs(); render(); }));
     $("#hc-toggle").onclick = () => { state.contrast = !state.contrast; localStorage.setItem("gw-contrast", state.contrast ? "1" : "0"); applyPrefs(); render(); };
     $("#print-btn").onclick = () => window.print();

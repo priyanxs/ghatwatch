@@ -42,46 +42,42 @@ The one user is the BMC officer who plans Durga visarjan (20 October 2026) and d
 
 ![Ranking and detail](docs/screenshots/02-ranking-and-detail.png)
 
-**A reference photo of the ghat's lake**, with its licence credit. It is clearly labelled as a photo of the water body, not of the specific ghat, and ghats with no openly licensed photo say so instead of showing a wrong one.
-
-![Reference photo](docs/screenshots/03-reference-photo.png)
-
 **Latest readings against the CPCB limits**, for dissolved oxygen, BOD and pH, before, during and one week after immersion. Green is within the limit, red is a breach, amber is no data.
 
-![Latest readings](docs/screenshots/04-latest-readings.png)
+![Latest readings](docs/screenshots/03-latest-readings.png)
 
 **Plain-language findings and recommended actions**, and trend charts for each parameter with the limit drawn on them. A break in a line means no reading, never "clean".
 
-![Findings and actions](docs/screenshots/05-findings-and-actions.png)
-![Trend charts](docs/screenshots/06-trend-charts.png)
+![Findings and actions](docs/screenshots/04-findings-and-actions.png)
+![Trend charts](docs/screenshots/05-trend-charts.png)
 
 **Map of the ghats**, coloured by risk level (positions are approximate; see [limitations](#limitations-stated-plainly)).
 
-![Map](docs/screenshots/07-map.png)
+![Map](docs/screenshots/06-map.png)
 
 **Compare all ghats:** risk scores, a resource plan (where to send aeration, cleaning and testing), and a period-by-period grid where missing data is hatched.
 
-![Comparison and grid](docs/screenshots/08-comparison-and-grid.png)
+![Comparison and grid](docs/screenshots/07-comparison-and-grid.png)
 
 **Latest data: lake monitoring, April 2025 to March 2026**, shown beside each ghat on the Upper or Lower Lake as context (never scored), plus the full table for every station.
 
-![Lake monitoring](docs/screenshots/09-lake-monitoring.png)
-![Lake data table](docs/screenshots/10-lake-data-table.png)
+![Lake monitoring](docs/screenshots/08-lake-monitoring.png)
+![Lake data table](docs/screenshots/09-lake-data-table.png)
 
 **Honest about gaps:** a "what this data does not cover" panel, built from the data and the guide's caveats.
 
-![What the data does not cover](docs/screenshots/11-what-the-data-does-not-cover.png)
+![What the data does not cover](docs/screenshots/10-what-the-data-does-not-cover.png)
 
 **One-page brief in English and Hindi**, per ghat and for the whole city.
 
-![Brief PDF](docs/screenshots/12-brief-pdf.png)
+![Brief PDF](docs/screenshots/14-brief-pdf.png)
 
 **Fully bilingual, accessible, and responsive:** Hindi interface, high-contrast mode, adjustable text size, and a phone layout.
 
-![Hindi](docs/screenshots/13-hindi.png)
-![High contrast](docs/screenshots/14-high-contrast.png)
+![Hindi](docs/screenshots/11-hindi.png)
+![High contrast](docs/screenshots/12-high-contrast.png)
 
-<img src="docs/screenshots/15-mobile.png" alt="Phone layout" width="300">
+<img src="docs/screenshots/13-mobile.png" alt="Phone layout" width="300">
 
 ## Features
 
@@ -103,12 +99,10 @@ The one user is the BMC officer who plans Durga visarjan (20 October 2026) and d
 | --- | --- |
 | Resource plan | Per ghat: how much it needs **aeration** (low oxygen), **cleaning** (organic waste) and **extra testing** (data gaps). |
 | Map | Real map of Bhopal with risk-coloured markers; click one to open that ghat. |
-| Reference photos | An openly licensed, credited photo of the Upper or Lower Lake for ghats on them; clearly not a photo of the ghat itself. |
 | Period-by-period grid | Every ghat and festival period, with before / during / one week after cells; missing data is hatched. |
 | Latest lake monitoring | Monthly lake data, Apr 2025 to Mar 2026 (the newest in the pack), as context that never changes a score. |
 | Trend and countdown | Better or worse than last year for each ghat, and days left to Durga Visarjan. |
 | Verified totals | The engine reproduces the organisers' own totals: **42 of 116** DO readings below 5 mg/L and **100 of 112** BOD readings above 3 mg/L. |
-| Simple, spacious layout | Generous spacing; secondary material (the full lake table, the weekly update, the score explanation) is folded away until you open it. |
 | Full Hindi interface | One click switches the whole site, including ghat names. |
 | Accessibility | Skip link, text size A / A+ / A++, high-contrast mode, keyboard use, screen-reader labels and a print view. |
 | Weekly public update | A bilingual caption with "how to avoid mistakes" tips; auto-posting is built but **off by default**. |
@@ -158,7 +152,7 @@ One scoring engine feeds the website, the API and the PDFs, so they cannot disag
 
 ```
 api/index.py            FastAPI backend: one Vercel function
-public/                 the website: index.html, style.css, app.js, icon, images/ghats (reference photos)
+public/                 the website: index.html, style.css, app.js, icon
 utils/
   data_loader.py        reads the CSV: BDL / blank codes, periods, phases
   risk_engine.py        CPCB limits, score, resource needs, brief text
@@ -167,7 +161,6 @@ utils/
   locations.py          map positions
   i18n.py               English and Hindi interface text
   pdf_generator.py      one-page PDFs (English + Hindi)
-  photos.py             reference-photo catalogue and credits
   weekly.py, publish.py weekly caption and optional social posting
   sources.py, clock.py  report links; India-time dates
 data/                   readings, lake monitoring, ghat positions (see data/README.md)
@@ -255,8 +248,6 @@ outside scripts, escaped output, a locked-down weekly-post endpoint, and pinned,
 - Only DO, BOD and pH have a Class B limit, so only they are scored. There is no coliform data, and only four metals were tested.
 - The **lake monitoring** covers only the Upper and Lower Lake stations (mostly water-supply intakes, not the ghats), May is blank, and its BOD is the 3-day, 27°C test,
   so it is not judged against the 3 mg/L limit. It never changes a score.
-- **Reference photos** exist only for ghats on the Upper and Lower Lake. None was found for Shahpura Lake, Hathaikheda dam or Malikhedi kund, so those show a note instead.
-  They are photos of the lake, not of the individual ghats, and do not show current conditions. (Wikimedia Commons files titled "Shahpura" turned out to show Shahpura in Rajasthan, so they were not used.)
 - "Rani Kamlapati ghat / Kamla Park kund" may be two places (medium match confidence). Bairagarh and Malikhedi have no Durga 2025 table in the report.
 - Each festival is sampled only three times, so a short spike between samples can be missed.
 - Weekly auto-posting is built but has not been tested against a live account.
@@ -271,8 +262,6 @@ outside scripts, escaped output, a locked-down weekly-post endpoint, and pinned,
 - **Limits:** [CPCB water quality criteria](https://cpcb.gov.in/water-quality-criteria/), Class B.
 - **Lake monitoring:** [Upper and Lower Lake monthly water quality 2025-26](https://xgn.mp.nic.in/File_Upload/MONITORING//Yearly%20Water%20Quality%20Status/2026/July/UPPER%20LAKE-2025-26..pdf),
   read from the copy in the pack, extracted by `scripts/extract_lake_monitoring.py` and checked against the PDF's own averages, maxima and minima.
-- **Photos:** [Upper Lake (Bada Talab)](https://commons.wikimedia.org/wiki/File:Bada_talab(upper_lake)_Bhopal.jpg) and [Lower Lake](https://commons.wikimedia.org/wiki/File:Lower_lake_Bhopal.jpg) by Masterblaster3r,
-  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via Wikimedia Commons; resized. Credits are listed in `data/ghat_photos.csv` and shown under each photo.
 - **Map:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (positions and tiles), rendered with [Leaflet](https://leafletjs.com). Charts by [Plotly](https://plotly.com/javascript/).
 - **Font:** Noto Sans Devanagari (SIL Open Font Licence), bundled so the Hindi PDFs work on a server.
 
