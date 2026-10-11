@@ -32,6 +32,7 @@ from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
 from utils.data_loader import load_data  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
+from utils.sources import REFERENCE_LINKS, SOURCE_REPORTS  # noqa: E402
 
 app = FastAPI(title="GhatWatch API", version="1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -101,6 +102,7 @@ def overview():
     breaches = int((data.do_status == engine.BREACH).sum() + (data.bod_status == engine.BREACH).sum())
     rows = [{**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi")} for r in ranking.to_dict("records")]
     return clean({
+        "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
         "years": sorted(int(y) for y in data.year.unique()),
         "timeline": timeline(data),
         "is_mock": is_mock,

@@ -149,6 +149,13 @@ STRINGS: dict[str, dict[str, str]] = {
     "lg.pass": {"en": "Within limits", "hi": "सीमा के भीतर"},
     "lg.breach": {"en": "Breach", "hi": "उल्लंघन"},
     "lg.nodata": {"en": "No data (never counted as clean)", "hi": "डेटा नहीं (स्वच्छ नहीं गिना जाता)"},
+    "src.title": {"en": "Source reports", "hi": "स्रोत रिपोर्ट"},
+    "src.demo": {"en": "The demo data is not taken from these reports. Once the real records are loaded, every reading "
+                       "links to its report and page.",
+                 "hi": "डेमो डेटा इन रिपोर्टों से नहीं लिया गया है। असली रिकॉर्ड लोड होने पर हर माप अपनी रिपोर्ट और पृष्ठ से "
+                       "जुड़ेगा।"},
+    "src.live": {"en": "Every reading in the evidence table links to its report, at the cited page.",
+                 "hi": "साक्ष्य तालिका का हर माप अपनी रिपोर्ट से, बताए गए पृष्ठ पर, जुड़ा है।"},
     "foot": {"en": "GhatWatch · Decision support for Bhopal Municipal Corporation. Based on historical records; "
                    "verify on site before acting.",
              "hi": "GhatWatch · भोपाल नगर निगम के लिए निर्णय सहायता। ऐतिहासिक रिकॉर्ड पर आधारित; "

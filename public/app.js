@@ -187,6 +187,13 @@ function compareSection() {
             <div class="legend">${legend}</div></div></div>`;
 }
 
+function sourcesSection() {
+    const src = OVERVIEW.sources, link = (x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)} ↗</a></li>`;
+    return `<div class="card" style="margin-top:28px"><h2>${esc(t("src.title"))}</h2>
+        <p class="note" style="margin:4px 0 10px">${esc(t(OVERVIEW.is_mock ? "src.demo" : "src.live"))}</p>
+        <ul class="links">${src.reports.map(link).join("")}${src.references.map(link).join("")}</ul></div>`;
+}
+
 // ---------------------------------------------------------------- charts
 const AXIS = { gridcolor: "#E6F0F2", fixedrange: true };
 const PLOT_BASE = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", template: "plotly_white",
@@ -249,7 +256,7 @@ function render() {
     document.documentElement.lang = state.lang;
     $("#app").innerHTML = `${hero()}<main class="wrap">${notices()}${stats()}
         <div class="grid"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
-        ${compareSection()}<footer>${esc(t("foot"))}</footer></main>`;
+        ${compareSection()}${sourcesSection()}<footer>${esc(t("foot"))}</footer></main>`;
     document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { state.lang = b.dataset.lang; localStorage.setItem("gw-lang", state.lang); render(); }));
     document.querySelectorAll("[data-filter]").forEach((b) => (b.onclick = () => {
         state.filter = b.dataset.filter;

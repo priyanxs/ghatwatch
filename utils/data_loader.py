@@ -21,6 +21,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from utils.sources import report_for_year
+
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "bhopal_water_quality.csv"
 
 PRE, POST = "Pre-Visarjan", "Post-Visarjan"
@@ -163,6 +165,20 @@ def _complete_grid(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def link_known_reports(df: pd.DataFrame) -> pd.DataFrame:
+    """For real readings, fill a missing source link (and name) from the year's published report."""
+    df = df.copy()
+    for i, row in df.iterrows():
+        report = report_for_year(row["year"])
+        if report is None:
+            continue
+        if not row["source_url"]:
+            df.at[i, "source_url"] = report["url"]
+        if row["source"] == "Not recorded":
+            df.at[i, "source"] = report["title"]
+    return df
+
+
 def generate_mock_data(seed: int = 7) -> pd.DataFrame:
     """Build illustrative data for the 7 ghats (2019-2024). NOT real measurements.
 
@@ -239,4 +255,6 @@ def load_data(path: Path = DATA_PATH) -> LoadResult:
         notes.append("Showing generated MOCK data for demonstration only.")
         cleaned = _clean(generate_mock_data(), notes=[])
 
+    if not is_mock:  # demo numbers are not from the published reports, so they are never linked to them
+        cleaned = link_known_reports(cleaned)
     return LoadResult(df=_complete_grid(cleaned), is_mock=is_mock, notes=notes)
