@@ -1,25 +1,19 @@
 # Data
 
-Put the historical records in `bhopal_water_quality.csv` in this folder and redeploy.
-Until that file exists, GhatWatch shows clearly labelled **demo data**.
+`bhopal_ghats_2023_2025.csv` is the Track 2 dataset: every reading at the 7 Bhopal ghats, 2023 to 2025, Ganesh and Durga,
+before / during / one week after immersion. One row per site / year / festival / phase / parameter, with
+`value`, `flag` (why a value is empty: `BDL`, `not sampled`, `*`, `**`), `value_as_printed` and `source_page`.
+GhatWatch scores three parameters: Dissolved oxygen, BOD and pH.
 
-One row per ghat / year / phase:
-
-| column | meaning |
-| --- | --- |
-| `ghat` | ghat name |
-| `year` | e.g. `2023` |
-| `phase` | `Pre-Visarjan` or `Post-Visarjan` (also accepts `pre` / `post`) |
-| `do_mg_l` | dissolved oxygen, mg/L |
-| `bod_mg_l` | BOD, mg/L |
-| `source` | report the value came from (shown in the evidence trail) |
-| `page` | PDF page number in that report |
-| `source_url` | optional: web link to the report (`https://…`). Shown as a clickable link in the evidence table; for `.pdf` links it opens at the cited `page`. Anything that is not an `http(s)` link is ignored. |
-
-`do_mg_l` and `bod_mg_l` may contain lab strings.
+Replace the file with newer data in the same format to update the site. If it is missing or unreadable, labelled demo data is shown.
 
 | value | treated as |
 | --- | --- |
+| a number | checked against the CPCB Class B limit |
 | `<2` | below 2: a pass for BOD (provably under 3), no data for DO |
-| `BDL`, `ND` | below detection / not detected, "very low": a pass for BOD, no data for DO |
+| `BDL`, `ND` | below detection / not detected, "very low": a pass for BOD, no data for DO and pH |
 | blank, `NA`, `_`, `-`, `*`, `**`, `not sampled` | missing: **never** counted as clean water |
+| a whole festival table absent from a report | missing, shown as a gap |
+
+`ghat_locations.csv` gives each ghat's map position (`lat`, `lon`, `precision` = `exact` or `approximate`, `basis`).
+A row without coordinates keeps that ghat off the map.

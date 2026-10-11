@@ -33,8 +33,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "m.ghats": {"en": "Ghats monitored", "hi": "निगरानी वाले घाट"},
     "m.high": {"en": "High-risk ghats", "hi": "उच्च-जोखिम घाट"},
     "m.breaches": {"en": "CPCB Class B breaches", "hi": "CPCB श्रेणी-B उल्लंघन"},
-    "m.breaches.help": {"en": "DO below 5 mg/L or BOD above 3 mg/L, all years.",
-                        "hi": "सभी वर्षों में DO 5 mg/L से कम या BOD 3 mg/L से अधिक।"},
     "m.nodata": {"en": "Readings with no data", "hi": "बिना डेटा वाले माप"},
     "m.nodata.help": {"en": "Missing or inconclusive readings. These are never counted as clean.",
                       "hi": "अनुपलब्ध या अनिर्णायक माप। इन्हें कभी स्वच्छ नहीं गिना जाता।"},
@@ -72,26 +70,11 @@ STRINGS: dict[str, dict[str, str]] = {
                       "until it is re-tested.",
                 "hi": "इस घाट को निम्न जोखिम आँकने के लिए डेटा बहुत कम है। पुनः परीक्षण होने तक इसका स्कोर "
                       "मध्यम सीमा ({m}) पर रोका गया है।"},
-    "d.limit": {"en": "CPCB Class B limit check  ·  DO ≥ {do} mg/L  ·  BOD ≤ {bod} mg/L",
-                "hi": "CPCB श्रेणी-B सीमा जाँच  ·  DO ≥ {do} mg/L  ·  BOD ≤ {bod} mg/L"},
     "c.year": {"en": "Year", "hi": "वर्ष"},
     "c.phase": {"en": "Phase", "hi": "चरण"},
     "c.do": {"en": "DO (mg/L)", "hi": "DO (mg/L)"},
     "c.bod": {"en": "BOD (mg/L)", "hi": "BOD (mg/L)"},
     "d.how": {"en": "How this score is built", "hi": "यह स्कोर कैसे बना"},
-    "d.how.body": {
-        "en": "- **Breach rate × {w1}**: share of readings breaching a limit (recent years weigh more). "
-              "Each no-data reading counts as {gw} of a breach. → `{br}`\n"
-              "- **Severity × {w2}**: how far breaching values are past the limit. → `{sev}`\n"
-              "- **Post-Visarjan deterioration × {w3}**: average fall in DO and rise in BOD from pre- to "
-              "post-Visarjan. → `{det}`\n"
-              "- Levels: High ≥ {hi}, Medium ≥ {mid}, otherwise Low.",
-        "hi": "- **उल्लंघन दर × {w1}**: सीमा तोड़ने वाले मापों का हिस्सा (हाल के वर्षों को अधिक महत्व)। "
-              "प्रत्येक डेटा-रहित माप उल्लंघन के {gw} के बराबर गिना जाता है। → `{br}`\n"
-              "- **गंभीरता × {w2}**: उल्लंघन वाले मान सीमा से कितने आगे हैं। → `{sev}`\n"
-              "- **विसर्जन-पश्चात गिरावट × {w3}**: विसर्जन से पहले से बाद तक DO में औसत गिरावट और BOD में औसत "
-              "वृद्धि। → `{det}`\n"
-              "- स्तर: उच्च ≥ {hi}, मध्यम ≥ {mid}, अन्यथा निम्न।"},
     "d.evidence": {"en": "Evidence trail (source report and PDF page)",
                    "hi": "साक्ष्य ट्रेल (स्रोत रिपोर्ट और PDF पृष्ठ)"},
     "e.source": {"en": "Source report", "hi": "स्रोत रिपोर्ट"},
@@ -121,8 +104,6 @@ STRINGS: dict[str, dict[str, str]] = {
                           "{gap}% of readings missing",
                     "hi": "<b>{n} में से {high} घाट</b> उच्च जोखिम वाले हैं · रिकॉर्ड में CPCB उल्लंघन {breaches} · "
                           "{gap}% माप अनुपलब्ध"},
-    "r.line": {"en": "DO below limit {do} of {dt} · BOD above limit {bod} of {bt} · {gap}% data missing",
-               "hi": "DO सीमा से कम {do}/{dt} · BOD सीमा से अधिक {bod}/{bt} · {gap}% डेटा अनुपलब्ध"},
     "h.pick": {"en": "Tap a ghat to see its details below.", "hi": "नीचे विवरण देखने के लिए किसी घाट को चुनें।"},
     "sec.why": {"en": "What the tests show", "hi": "जाँच क्या बताती है"},
     "sec.do": {"en": "What to do", "hi": "क्या करें"},
@@ -130,24 +111,16 @@ STRINGS: dict[str, dict[str, str]] = {
     "sec.table": {"en": "All readings and their sources", "hi": "सभी माप और उनके स्रोत"},
     "sec.brief": {"en": "Action brief", "hi": "कार्य-सार"},
     "b.other": {"en": "Also in हिन्दी", "hi": "English में भी देखें"},
-    "tr.help": {"en": "Dotted line = CPCB limit. A break in a line means no reading that year.",
-                "hi": "बिंदीदार रेखा = CPCB सीमा। रेखा में टूटन का अर्थ है उस वर्ष कोई माप नहीं।"},
     # --- dashboard layout (public frontend)
     "hero.tag": {"en": "Know which Visarjan ghats need attention first",
                  "hi": "जानिए विसर्जन के किन घाटों पर सबसे पहले ध्यान देना है"},
     "f.all": {"en": "All", "hi": "सभी"},
     "sec.detail": {"en": "Ghat details", "hi": "घाट का विवरण"},
-    "sec.latest": {"en": "Latest readings ({y})", "hi": "नवीनतम माप ({y})"},
     "latest.do": {"en": "Dissolved oxygen", "hi": "घुलित ऑक्सीजन"},
     "latest.bod": {"en": "BOD", "hi": "BOD"},
     "latest.limit.do": {"en": "Limit: at least {v} mg/L", "hi": "सीमा: कम से कम {v} mg/L"},
-    "latest.limit.bod": {"en": "Limit: at most {v} mg/L", "hi": "सीमा: अधिकतम {v} mg/L"},
     "sec.compare": {"en": "Compare all ghats", "hi": "सभी घाटों की तुलना"},
-    "cmp.score": {"en": "Risk score by ghat (tap a bar to open it)",
-                  "hi": "घाट के अनुसार जोखिम स्कोर (खोलने के लिए बार चुनें)"},
     "sec.matrix": {"en": "Year-by-year status", "hi": "वर्ष-दर-वर्ष स्थिति"},
-    "matrix.help": {"en": "Each year has two cells: before and after Visarjan.",
-                    "hi": "हर वर्ष के दो खाने हैं: विसर्जन से पहले और बाद।"},
     "lg.pass": {"en": "Within limits", "hi": "सीमा के भीतर"},
     "lg.breach": {"en": "Breach", "hi": "उल्लंघन"},
     "lg.nodata": {"en": "No data (never counted as clean)", "hi": "डेटा नहीं (स्वच्छ नहीं गिना जाता)"},
@@ -187,12 +160,66 @@ STRINGS: dict[str, dict[str, str]] = {
     "weekly.demo": {"en": "Demo data is never posted automatically.", "hi": "डेमो डेटा कभी अपने-आप पोस्ट नहीं होता।"},
     "err.load": {"en": "Could not load this ghat ({e}). Please try again.",
                  "hi": "यह घाट लोड नहीं हो सका ({e})। कृपया पुनः प्रयास करें।"},
+    "m.breaches.help": {"en": "DO below 5 mg/L, BOD above 3 mg/L or pH outside 6.5 to 8.5, all periods.",
+                        "hi": "सभी अवधियों में DO 5 mg/L से कम, BOD 3 mg/L से अधिक या pH 6.5 से 8.5 के बाहर।"},
+    "r.line": {"en": "DO below limit {do} of {dt} · BOD above limit {bod} of {bt} · pH out of range {ph} of {pt} · {gap}% data missing",
+               "hi": "DO सीमा से कम {do}/{dt} · BOD सीमा से अधिक {bod}/{bt} · pH सीमा के बाहर {ph}/{pt} · {gap}% डेटा अनुपलब्ध"},
+    "d.limit": {"en": "CPCB Class B limit check  ·  DO ≥ {do} mg/L  ·  BOD ≤ {bod} mg/L  ·  pH {phmin} to {phmax}",
+                "hi": "CPCB श्रेणी-B सीमा जाँच  ·  DO ≥ {do} mg/L  ·  BOD ≤ {bod} mg/L  ·  pH {phmin} से {phmax}"},
+    "d.how.body": {
+        "en": "- **Breach rate × {w1}**: share of DO, BOD and pH readings breaching a CPCB Class B limit (recent periods weigh more). "
+              "Each no-data reading counts as {gw} of a breach. → `{br}`\n"
+              "- **Severity × {w2}**: how far breaching values are past the limit. → `{sev}`\n"
+              "- **Impact of immersion × {w3}**: average fall in DO and rise in BOD from before to during immersion. → `{det}`\n"
+              "- Levels: High ≥ {hi}, Medium ≥ {mid}, otherwise Low. These cut-offs are a starting point to agree with BMC.",
+        "hi": "- **उल्लंघन दर × {w1}**: CPCB श्रेणी-B की सीमा तोड़ने वाले DO, BOD और pH मापों का हिस्सा (हाल की अवधियों को अधिक महत्व)। "
+              "प्रत्येक डेटा-रहित माप उल्लंघन के {gw} के बराबर गिना जाता है। → `{br}`\n"
+              "- **गंभीरता × {w2}**: उल्लंघन वाले मान सीमा से कितने आगे हैं। → `{sev}`\n"
+              "- **विसर्जन का प्रभाव × {w3}**: विसर्जन से पहले से दौरान तक DO में औसत गिरावट और BOD में औसत वृद्धि। → `{det}`\n"
+              "- स्तर: उच्च ≥ {hi}, मध्यम ≥ {mid}, अन्यथा निम्न। ये सीमाएँ BMC के साथ तय करने की शुरुआती रेखा हैं।"},
+    "sec.latest": {"en": "Latest readings ({y})", "hi": "नवीनतम माप ({y})"},
+    "latest.limit.bod": {"en": "Limit: at most {v} mg/L", "hi": "सीमा: अधिकतम {v} mg/L"},
+    "latest.ph": {"en": "pH", "hi": "pH"},
+    "latest.limit.ph": {"en": "Limit: {v}", "hi": "सीमा: {v}"},
+    "latest.fallback": {"en": "{p} has no table for this ghat, so the latest available period is shown.",
+                        "hi": "इस घाट की {p} की कोई तालिका नहीं है, इसलिए उपलब्ध नवीनतम अवधि दिखाई गई है।"},
+    "matrix.help": {"en": "Each period has three cells: before, during and one week after immersion.",
+                    "hi": "हर अवधि के तीन खाने हैं: विसर्जन से पहले, दौरान और एक सप्ताह बाद।"},
+    "phase.Pre-Visarjan": {"en": "Before immersion", "hi": "विसर्जन से पहले"},
+    "phase.During": {"en": "During immersion", "hi": "विसर्जन के दौरान"},
+    "phase.Post-Visarjan": {"en": "One week after", "hi": "एक सप्ताह बाद"},
+    "tr.help": {"en": "Dotted line = CPCB limit. A break in a line means no reading in that period.",
+                "hi": "बिंदीदार रेखा = CPCB सीमा। रेखा में टूटन का अर्थ है उस अवधि में कोई माप नहीं।"},
+    "tr.ph": {"en": "pH (6.5 to 8.5 is within limits)", "hi": "pH (6.5 से 8.5 सीमा के भीतर)"},
+    "tr.lim.ph": {"en": "CPCB Class B range {v}", "hi": "CPCB श्रेणी-B दायरा {v}"},
+    "c.period": {"en": "Period", "hi": "अवधि"},
+    "c.ph": {"en": "pH", "hi": "pH"},
+    "e.ph": {"en": "pH as recorded", "hi": "दर्ज pH"},
+    "cmp.score": {"en": "Risk score by ghat (tap a bar to open it)", "hi": "घाट के अनुसार जोखिम स्कोर (खोलने के लिए बार चुनें)"},
+    "sec.plan": {"en": "Where to send resources", "hi": "संसाधन कहाँ भेजें"},
+    "plan.help": {"en": "How much each ghat needs aeration (low oxygen), cleaning (organic waste) and extra testing (data gaps).",
+                  "hi": "हर घाट को कितनी वायुयन (कम ऑक्सीजन), सफ़ाई (जैविक कचरा) और अतिरिक्त जाँच (डेटा अंतर) चाहिए।"},
+    "need.aeration": {"en": "Aeration", "hi": "वायुयन"},
+    "need.cleaning": {"en": "Cleaning", "hi": "सफ़ाई"},
+    "need.testing": {"en": "Testing", "hi": "जाँच"},
+    "sec.caveats": {"en": "What this data does not cover", "hi": "यह डेटा क्या कवर नहीं करता"},
+    "caveats.help": {"en": "Read this before acting on the ranking.", "hi": "रैंकिंग पर कार्रवाई से पहले इसे पढ़ें।"},
+    "sec.verified": {"en": "Matches the organisers’ own totals: {do} of {dt} DO readings below 5 mg/L and {bod} of {bt} BOD readings above 3 mg/L.",
+                     "hi": "आयोजकों के अपने आँकड़ों से मेल खाता है: {dt} में से {do} DO माप 5 mg/L से कम और {bt} में से {bod} BOD माप 3 mg/L से अधिक।"},
+    "sec.map": {"en": "Where the ghats are", "hi": "घाट कहाँ हैं"},
+    "map.help": {"en": "Colour = risk level, number = score. Tap a marker to open that ghat.",
+                 "hi": "रंग = जोखिम स्तर, संख्या = स्कोर। किसी मार्कर पर टैप करके उस घाट को खोलें।"},
+    "map.exact": {"en": "Position of a map feature with this ghat's name. Not field-verified.", "hi": "इस घाट के नाम वाली नक्शे की जगह की स्थिति। मौके पर सत्यापित नहीं।"},
+    "map.approx": {"en": "Approximate position (centre of the lake or the locality). Not field-verified.",
+                   "hi": "अनुमानित स्थिति (झील या मोहल्ले का केंद्र)। मौके पर सत्यापित नहीं।"},
+    "map.unmapped": {"en": "Not shown on the map (location not confirmed): {names}.", "hi": "नक्शे पर नहीं दिखाए गए (स्थान की पुष्टि नहीं): {names}।"},
+    "map.open": {"en": "Open details", "hi": "विवरण खोलें"},
+    "map.offline": {"en": "The map could not be loaded (check the internet connection). The ranking below still works.",
+                    "hi": "नक्शा लोड नहीं हो सका (इंटरनेट कनेक्शन जाँचें)। नीचे की रैंकिंग काम करती है।"},
     # --- value labels
     "lvl.High": {"en": "High", "hi": "उच्च"},
     "lvl.Medium": {"en": "Medium", "hi": "मध्यम"},
     "lvl.Low": {"en": "Low", "hi": "निम्न"},
-    "phase.Pre-Visarjan": {"en": "Pre-Visarjan", "hi": "विसर्जन से पहले"},
-    "phase.Post-Visarjan": {"en": "Post-Visarjan", "hi": "विसर्जन के बाद"},
     "status.PASS": {"en": "✅ Pass", "hi": "✅ सीमा के भीतर"},
     "status.BREACH": {"en": "❌ Breach", "hi": "❌ उल्लंघन"},
     "status.NO DATA": {"en": "⚠️ No data", "hi": "⚠️ डेटा नहीं"},

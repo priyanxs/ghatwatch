@@ -1,5 +1,3 @@
-# Local development: the API server plus the optional Streamlit dashboard (app.py).
+# Local development: the API server (uvicorn) on top of the deployed requirements.
 -r requirements.txt
 uvicorn
-streamlit
-plotly

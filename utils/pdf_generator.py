@@ -177,15 +177,20 @@ class HindiText(Flowable):
                 _SHAPER.draw(self.canv, self._indent + shift, base, line, self.size, self.colour)
 
 
+_PHASE_LABEL = {"Pre-Visarjan": "Before", "During": "During", "Post-Visarjan": "1 week after"}
+_PHASE_ORDER = {"Pre-Visarjan": 0, "During": 1, "Post-Visarjan": 2}
+
+
 def _breach_rows(readings: pd.DataFrame, limit: int) -> tuple[list[list[str]], int]:
     """Most recent breaching readings as table rows, plus how many were left out."""
-    hit = readings[(readings.do_status == BREACH) | (readings.bod_status == BREACH)]
-    hit = hit.sort_values(["year", "phase"], ascending=[False, False])
+    hit = readings[(readings.do_status == BREACH) | (readings.bod_status == BREACH) | (readings.ph_status == BREACH)].copy()
+    hit["_ph"] = hit["phase"].map(_PHASE_ORDER)
+    hit = hit.sort_values(["p_order", "_ph"], ascending=[False, True])
     rows = []
     for _, r in hit.head(limit).iterrows():
-        flags = [name for name, st in (("DO below 5", r.do_status), ("BOD above 3", r.bod_status))
+        flags = [name for name, st in (("DO below 5", r.do_status), ("BOD above 3", r.bod_status), ("pH outside 6.5-8.5", r.ph_status))
                  if st == BREACH]
-        rows.append([str(r.year), r.phase, r.do_raw, r.bod_raw, ", ".join(flags)])
+        rows.append([r.period, _PHASE_LABEL.get(r.phase, r.phase), r.do_raw, r.bod_raw, r.ph_raw, ", ".join(flags)])
     return rows, max(len(hit) - limit, 0)
 
 
@@ -235,11 +240,11 @@ def _story(summary, brief, readings, rank, n_ghats, is_mock, k):
                            st(fontSize=8 * k, leading=10.5 * k, textColor=LEVEL_COLOUR["High"])))
 
     # CPCB breaches
-    s.append(Paragraph("CPCB Class B breaches (DO >= 5 mg/L, BOD <= 3 mg/L)", h2))
-    rows, extra = _breach_rows(readings, limit=7)
+    s.append(Paragraph("CPCB Class B breaches (DO >= 5 mg/L, BOD <= 3 mg/L, pH 6.5 to 8.5)", h2))
+    rows, extra = _breach_rows(readings, limit=8)
     if rows:
-        table = Table([["Year", "Phase", "DO mg/L", "BOD mg/L", "Breach"]] + rows,
-                      colWidths=[16 * mm, 32 * mm, 22 * mm, 22 * mm, 86 * mm], repeatRows=1, hAlign="LEFT")
+        table = Table([["Period", "Phase", "DO mg/L", "BOD mg/L", "pH", "Breach"]] + rows,
+                      colWidths=[22 * mm, 24 * mm, 17 * mm, 17 * mm, 13 * mm, 85 * mm], repeatRows=1, hAlign="LEFT")
         table.setStyle(TableStyle([
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8.5 * k),
             ("TEXTCOLOR", (0, 0), (-1, -1), INK), ("LINEBELOW", (0, 0), (-1, 0), 0.8, INK),
@@ -311,17 +316,18 @@ def _city_story(rows: list[dict], is_mock: bool, k: float) -> list:
         story.append(Paragraph("<b>DEMO DATA:</b> values are generated for demonstration, not real measurements.",
                                st(fontSize=8 * k, textColor=LEVEL_COLOUR["High"])))
     story.append(Spacer(1, 5 * k))
-    data = [[Paragraph(f"<b>{h}</b>", st()) for h in ("#", "Ghat", "Level", "Score", "Data gap", "First recommended action")]]
+    data = [[Paragraph(f"<b>{h}</b>", st()) for h in ("#", "Ghat", "Level", "Score", "Gap", "Needs A / C / T", "First recommended action")]]
     for r in rows:
         col = LEVEL_COLOUR[r["risk_level"]].hexval()[2:]
         data.append([Paragraph(str(r["rank"]), st()), Paragraph(r["ghat"], st()),
                      Paragraph(f'<font color="#{col}"><b>{r["risk_level"]}</b></font>', st()),
-                     Paragraph(f'{r["risk_score"]:.0f}', st()), Paragraph(f'{r["gap_pct"]:g}%', st()), Paragraph(r["action_en"], st())])
-    table = Table(data, colWidths=[8 * mm, 36 * mm, 16 * mm, 12 * mm, 16 * mm, 90 * mm], repeatRows=1, hAlign="LEFT")
+                     Paragraph(f'{r["risk_score"]:.0f}', st()), Paragraph(f'{r["gap_pct"]:g}%', st()),
+                     Paragraph(" / ".join(r[f"need_{n}"][0] for n in ("aeration", "cleaning", "testing")), st()), Paragraph(r["action_en"], st())])
+    table = Table(data, colWidths=[7 * mm, 34 * mm, 15 * mm, 11 * mm, 12 * mm, 22 * mm, 77 * mm], repeatRows=1, hAlign="LEFT")
     table.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, 0), 0.8, INK), ("LINEBELOW", (0, 1), (-1, -1), 0.3, RULE),
                                ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 2),
                                ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 3)]))
-    story.append(table)
+    story += [table, Paragraph("Needs: A = aeration (low oxygen), C = cleaning (organic waste), T = extra testing (data gaps). H = high, M = medium, L = low.", st(fontSize=7.5 * k, textColor=MUTED))]
     if hindi:
         story += [Spacer(1, 8 * k), HindiText("घाटों की प्राथमिकता और पहली कार्रवाई", size=11 * k, bold=True)]
         for r in rows:

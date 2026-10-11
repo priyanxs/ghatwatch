@@ -30,7 +30,9 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
-from utils.data_loader import load_data  # noqa: E402
+from utils.caveats import build_caveats  # noqa: E402
+from utils.data_loader import PHASES, load_data  # noqa: E402
+from utils.locations import load_locations  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
 from utils import publish as social  # noqa: E402
 from utils.pdf_generator import build_city_pdf  # noqa: E402
@@ -39,8 +41,9 @@ from utils.weekly import build_weekly_report, days_left  # noqa: E402
 
 app = FastAPI(title="GhatWatch API", version="1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-READING_COLUMNS = ["year", "phase", "do_raw", "bod_raw", "do_value", "bod_value",
-                   "do_status", "bod_status", "source", "page", "source_url"]
+READING_COLUMNS = ["period", "year", "festival", "phase", "do_raw", "bod_raw", "ph_raw", "do_value", "bod_value", "ph_value",
+                   "do_status", "bod_status", "ph_status", "source", "page", "source_url"]
+PHASE_RANK = {p: i for i, p in enumerate(PHASES)}
 
 
 def clean(value):
@@ -63,12 +66,18 @@ def state():
     return engine.annotate(result.df), engine.rank_ghats(result.df), result.is_mock, result.notes
 
 
-def find_ghat(name: str):
-    """Return ``(annotated rows, ranking row)`` for a ghat, or 404."""
+def slugify(name: str) -> str:
+    """URL-safe id for a ghat. Real names contain "/" and brackets, which cannot sit in a URL path."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def find_ghat(key: str):
+    """Return ``(annotated rows, ranking row)`` for a ghat given its id (or its name), or 404."""
     data, ranking, _, _ = state()
-    match = ranking[ranking.ghat == name]
+    match = ranking[ranking.ghat.map(slugify) == slugify(key)]
     if match.empty:
-        raise HTTPException(status_code=404, detail=f"Unknown ghat: {name}")
+        raise HTTPException(status_code=404, detail=f"Unknown ghat: {key}")
+    name = match.iloc[0].ghat
     return data[data.ghat == name], match.iloc[0]
 
 
@@ -80,8 +89,8 @@ def trends(data) -> dict:
         rates = []
         for y in years[-2:]:
             rows = g[g.year == y]
-            tested = int((rows.do_status != engine.NO_DATA).sum() + (rows.bod_status != engine.NO_DATA).sum())
-            breaches = int((rows.do_status == engine.BREACH).sum() + (rows.bod_status == engine.BREACH).sum())
+            tested = sum(int((rows[f"{p}_status"] != engine.NO_DATA).sum()) for p in engine.PARAMS)
+            breaches = sum(int((rows[f"{p}_status"] == engine.BREACH).sum()) for p in engine.PARAMS)
             rates.append(breaches / tested if tested else None)
         if len(rates) < 2 or None in rates:
             out[ghat] = "na"
@@ -92,17 +101,14 @@ def trends(data) -> dict:
 
 
 def timeline(data) -> dict:
-    """Per ghat, year and phase: one overall status for the year-by-year grid.
+    """Per ghat, period and phase: one overall status for the period-by-period grid.
 
-    BREACH if DO or BOD breached; otherwise NO DATA if either is missing or inconclusive;
-    otherwise PASS. Missing data therefore never shows up as a pass.
+    BREACH if DO, BOD or pH breached; otherwise NO DATA if any is missing or inconclusive; otherwise PASS.
+    Missing data therefore never shows up as a pass.
     """
     out: dict = {}
     for r in data.itertuples():
-        pair = {r.do_status, r.bod_status}
-        status = (engine.BREACH if engine.BREACH in pair
-                  else engine.NO_DATA if engine.NO_DATA in pair else engine.PASS)
-        out.setdefault(r.ghat, {}).setdefault(str(int(r.year)), {})[r.phase] = status
+        out.setdefault(r.ghat, {}).setdefault(r.period, {})[r.phase] = engine.row_status(r)
     return out
 
 
@@ -122,19 +128,21 @@ def overview():
     readings = len(data) * 2
     gaps = int((data.do_status == engine.NO_DATA).sum() + (data.bod_status == engine.NO_DATA).sum())
     breaches = int((data.do_status == engine.BREACH).sum() + (data.bod_status == engine.BREACH).sum())
-    trend = trends(data)
-    rows = [{**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
+    trend, places = trends(data), load_locations()
+    rows = [{**r, "location": places.get(r["ghat"]), "id": slugify(r["ghat"]), "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
     return clean({
         "days_left": days_left(),
         "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
-        "years": sorted(int(y) for y in data.year.unique()),
+        "periods": [{"key": p, "year": int(y), "festival": f} for p, y, f in
+                    data[["period", "year", "festival", "p_order"]].drop_duplicates().sort_values("p_order")[["period", "year", "festival"]].itertuples(index=False)],
         "timeline": timeline(data),
+        "caveats": build_caveats(data),
         "is_mock": is_mock,
         "notes": notes,
         "disclaimer": {"en": engine.DISCLAIMER_EN, "hi": engine.DISCLAIMER_HI},
         "metrics": {"ghats": len(ranking), "high_risk": int((ranking.risk_level == "High").sum()),
                     "breaches": breaches, "no_data_pct": round(100 * gaps / readings, 1)},
-        "limits": {"do_min": engine.DO_MIN, "bod_max": engine.BOD_MAX},
+        "limits": {"do_min": engine.DO_MIN, "bod_max": engine.BOD_MAX, "ph_min": engine.PH_MIN, "ph_max": engine.PH_MAX},
         "weights": {"breach": engine.W_BREACH, "severity": engine.W_SEVERITY,
                     "deterioration": engine.W_DETERIORATION, "gap": engine.GAP_WEIGHT,
                     "high_at": engine.HIGH_AT, "medium_at": engine.MEDIUM_AT},
@@ -146,11 +154,15 @@ def overview():
 def ghat_detail(ghat: str):
     rows, summary = find_ghat(ghat)
     summary = summary.to_dict()
-    readings = rows.sort_values(["year", "phase"], ascending=[False, False])[READING_COLUMNS]
+    ghat = summary["ghat"]
+    readings = (rows.assign(_ph=rows["phase"].map(PHASE_RANK)).sort_values(["p_order", "_ph"], ascending=[False, True])[READING_COLUMNS])
     return clean({
         "ghat": ghat,
+        "id": slugify(ghat),
         "ghat_hi": i18n.ghat_name(ghat, "hi"),
         "rank": summary["rank"],
+        "water_body": next((x for x in rows["water_body"] if x), ""),
+        "confidence": next((x for x in rows["confidence"] if x), ""),
         "summary": summary,
         "readings": readings.to_dict("records"),
         "brief": engine.build_brief(ghat, summary),
@@ -162,14 +174,14 @@ def ghat_brief_pdf(ghat: str):
     rows, summary = find_ghat(ghat)
     _, ranking, is_mock, _ = state()
     summary = summary.to_dict()
+    ghat = summary["ghat"]
     try:
         pdf = build_pdf(ghat, summary, engine.build_brief(ghat, summary), rows,
                         int(summary["rank"]), len(ranking), is_mock)
     except Exception as exc:  # report a clean error instead of a bare 500 trace
         raise HTTPException(status_code=500, detail=f"Could not build the PDF brief: {exc}") from exc
-    slug = re.sub(r"[^a-z0-9]+", "_", ghat.lower()).strip("_")
     return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="ghatwatch_{slug}.pdf"'})
+                    headers={"Content-Disposition": f'attachment; filename="ghatwatch_{slugify(ghat).replace("-", "_")}.pdf"'})
 
 
 @app.get("/api/readiness.pdf")

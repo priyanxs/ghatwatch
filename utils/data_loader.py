@@ -1,16 +1,15 @@
-"""Load and clean historical Bhopal water-quality records.
+"""Load and clean the MPPCB immersion readings for Bhopal's ghats.
 
-Expected CSV (``data/bhopal_water_quality.csv``), one row per ghat / year / phase:
+Input is the Track 2 long format, ``data/bhopal_ghats_2023_2025.csv``: one row per
+site / year / festival / phase / parameter, with the value as printed, a ``flag`` explaining an empty value
+(BDL, not sampled, * , **) and the report ``source_page``. It is turned into one row per ghat / period /
+phase with DO, BOD and pH, where a *period* is a year and festival such as ``2025 Durga``.
 
-    ghat, year, phase, do_mg_l, bod_mg_l, source, page [, source_url]
+Nothing here decides whether water is clean. Values are only normalised, and the qualifier is kept so
+the risk engine can treat a missing, censored or unreadable value conservatively.
 
-``do_mg_l`` and ``bod_mg_l`` may hold messy lab strings such as ``"<2"`` (below detection
-limit), ``"BDL"``, ``"NA"`` or ``""``. Nothing here decides whether water is clean; the
-loader only normalises values and keeps the censoring qualifier so that the risk engine
-can treat an unreadable or censored value conservatively.
-
-If the CSV is missing or unusable, a clearly labelled mock dataset is generated so the
-dashboard still runs.
+If the CSV is missing or unusable a clearly labelled mock dataset is generated, in the same long format,
+so the dashboard still runs.
 """
 from __future__ import annotations
 
@@ -23,21 +22,13 @@ import pandas as pd
 
 from utils.sources import DEMO_LINKS, report_for_year
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "bhopal_water_quality.csv"
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "bhopal_ghats_2023_2025.csv"
 
-PRE, POST = "Pre-Visarjan", "Post-Visarjan"
-PHASES = (PRE, POST)
-
-# Names used by the mock generator (illustrative; real names come from the CSV).
-MOCK_GHATS = (
-    "Prempura Ghat",
-    "Khatlapura Ghat",
-    "Bhadbhada Ghat",
-    "Lalghati Ghat",
-    "Motia Talab Ghat",
-    "Munshi Hussain Khan Talab Ghat",
-    "Shahpura Lake Ghat",
-)
+PRE, DURING, POST = "Pre-Visarjan", "During", "Post-Visarjan"
+PHASES = (PRE, DURING, POST)
+PHASE_MAP = {"pre": PRE, "during": DURING, "after": POST}
+FESTIVAL_ORDER = {"ganesh": 1, "durga": 2}
+PARAM_COLUMNS = {"dissolved oxygen": "do", "bod": "bod", "ph": "ph"}   # parameter name (lower case) -> short name
 
 NO_RECORD = "(no record)"
 
@@ -49,14 +40,7 @@ _MISSING = {"", "na", "n/a", "nan", "none", "null", "-", "--", "_", "*", "**", "
 _BDL = {"bdl", "nd", "<dl", "below detection limit", "not detected"}
 _NUMBER = re.compile(r"^([<>]?)\s*(-?\d+(?:\.\d+)?)$")
 
-COLUMN_ALIASES = {
-    "do": "do_mg_l", "dissolved_oxygen": "do_mg_l", "do_mg/l": "do_mg_l",
-    "bod": "bod_mg_l", "bod_mg/l": "bod_mg_l",
-    "station": "ghat", "location": "ghat",
-    "pdf_page": "page", "page_no": "page", "report": "source",
-    "url": "source_url", "link": "source_url", "report_url": "source_url",
-}
-REQUIRED = ["ghat", "year", "phase", "do_mg_l", "bod_mg_l"]
+REQUIRED = ["year", "festival", "site", "phase", "parameter"]
 
 
 @dataclass
@@ -93,86 +77,106 @@ def parse_reading(raw) -> tuple[float, str]:
         return np.nan, ""
 
 
-def _normalise_phase(raw) -> str | None:
-    text = str(raw).strip().lower()
-    if "pre" in text or "before" in text:
-        return PRE
-    if "post" in text or "after" in text:
-        return POST
-    return None
+def _cell(value: str, printed: str, flag: str) -> str:
+    """The text of one reading: the number if there is one, otherwise exactly what the report printed."""
+    value, printed, flag = (value or "").strip(), (printed or "").strip(), (flag or "").strip()
+    return value or printed or flag
 
 
-def _clean(raw: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
-    """Normalise a raw CSV frame into the schema the rest of the app expects."""
+def _pivot_long(raw: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
+    """Long CSV -> one row per ghat / period / phase with raw text for DO, BOD and pH."""
     df = raw.copy()
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
-    df = df.rename(columns=COLUMN_ALIASES)
-    missing_cols = [c for c in REQUIRED if c not in df.columns]
-    if missing_cols:
-        raise ValueError(f"CSV is missing required column(s): {', '.join(missing_cols)}")
-
-    for optional in ("source", "page", "source_url"):
+    missing = [c for c in REQUIRED if c not in df.columns]
+    if missing:
+        raise ValueError(f"CSV is missing required column(s): {', '.join(missing)}")
+    for optional in ("value", "flag", "value_as_printed", "source_page", "site_match_confidence", "water_body"):
         if optional not in df.columns:
-            df[optional] = "Not recorded"
-    df["source"] = df["source"].astype(str).str.strip().replace("", "Not recorded")
-    df["page"] = df["page"].astype(str).str.strip().replace("", "Not recorded")
-    # Only real web links are kept, so a bad cell can never become a script link on the page.
-    df["source_url"] = df["source_url"].astype(str).str.strip()
-    df.loc[~df["source_url"].str.lower().str.match(r"^https?://\S+$"), "source_url"] = ""
+            df[optional] = ""
 
-    df["ghat"] = df["ghat"].astype(str).str.strip()
+    df["site"] = df["site"].astype(str).str.strip()
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
-    df["phase"] = df["phase"].map(_normalise_phase)
+    df["festival"] = df["festival"].astype(str).str.strip().str.title()
+    df["phase"] = df["phase"].astype(str).str.strip().str.lower().map(PHASE_MAP)
+    df["short"] = df["parameter"].astype(str).str.strip().str.lower().map(PARAM_COLUMNS)
 
-    bad = df["year"].isna() | df["phase"].isna() | (df["ghat"] == "")
+    bad = df["year"].isna() | df["phase"].isna() | (df["site"] == "") | (df["festival"] == "")
     if bad.any():
-        notes.append(f"Skipped {int(bad.sum())} row(s) with an unreadable ghat, year or phase.")
+        notes.append(f"Skipped {int(bad.sum())} row(s) with an unreadable site, year, festival or phase.")
         df = df[~bad]
+    df = df[df["short"].notna()]
     df["year"] = df["year"].astype(int)
+    df["text"] = [_cell(v, p, f) for v, p, f in zip(df["value"], df["value_as_printed"], df["flag"])]
 
-    dupes = df.duplicated(["ghat", "year", "phase"], keep="first")
+    key = ["site", "year", "festival", "phase"]
+    dupes = df.duplicated(key + ["short"], keep="first")
     if dupes.any():
-        notes.append(f"Ignored {int(dupes.sum())} duplicate ghat/year/phase row(s) (kept the first).")
+        notes.append(f"Ignored {int(dupes.sum())} duplicate reading(s) (kept the first).")
         df = df[~dupes]
 
-    df["do_raw"] = df["do_mg_l"].astype(str).str.strip()
-    df["bod_raw"] = df["bod_mg_l"].astype(str).str.strip()
-    for prefix in ("do", "bod"):
-        parsed = df[f"{prefix}_raw"].map(parse_reading)
-        df[f"{prefix}_value"] = parsed.map(lambda p: p[0])
-        df[f"{prefix}_qual"] = parsed.map(lambda p: p[1])
+    wide = df.pivot(index=key, columns="short", values="text")
+    for col in ("do", "bod", "ph"):
+        if col not in wide.columns:
+            wide[col] = ""
+    wide = wide[["do", "bod", "ph"]].fillna("").add_suffix("_raw").reset_index()
 
-    known = _MISSING | _BDL
-    unreadable = ((df["do_value"].isna() & (df["do_qual"] == "") & ~df["do_raw"].str.lower().isin(known))
-                  | (df["bod_value"].isna() & (df["bod_qual"] == "") & ~df["bod_raw"].str.lower().isin(known)))
-    if unreadable.any():
-        notes.append(f"{int(unreadable.sum())} row(s) had an unreadable DO/BOD value; "
-                     "treated as missing, never as clean.")
-
-    return df[["ghat", "year", "phase", "do_raw", "bod_raw", "do_value", "do_qual",
-               "bod_value", "bod_qual", "source", "page", "source_url"]]
-
-
-def _complete_grid(df: pd.DataFrame) -> pd.DataFrame:
-    """Add an explicit empty row for every ghat/year/phase that has no record at all.
-
-    A year with no report for a ghat is a data gap, so it must show up as one.
-    """
-    full = pd.MultiIndex.from_product(
-        [sorted(df["ghat"].unique()), range(df["year"].min(), df["year"].max() + 1), PHASES],
-        names=["ghat", "year", "phase"])
-    out = df.set_index(["ghat", "year", "phase"]).reindex(full).reset_index()
-    absent = out["source"].isna()
-    out.loc[absent, ["do_raw", "bod_raw"]] = NO_RECORD
-    out.loc[absent, ["source", "page"]] = NO_RECORD
-    out["source_url"] = out["source_url"].fillna("")
-    for prefix in ("do", "bod"):
-        out[f"{prefix}_qual"] = out[f"{prefix}_qual"].fillna("")
+    # Page, water body and match confidence describe a whole site / year / festival table.
+    meta = (df.groupby(["site", "year", "festival"])
+              .agg(page=("source_page", "first"), water_body=("water_body", "first"), confidence=("site_match_confidence", "first"))
+              .reset_index())
+    out = wide.merge(meta, on=["site", "year", "festival"], how="left").rename(columns={"site": "ghat"})
+    out["page"] = out["page"].fillna("").astype(str).str.strip().str.replace(r"\.0$", "", regex=True).replace("", "Not recorded")
+    out["source"], out["source_url"] = "Not recorded", ""
     return out
 
 
+def _enrich(df: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
+    """Parse the raw text into numbers + qualifiers and add the period columns."""
+    df = df.copy()
+    for p in ("do", "bod", "ph"):
+        parsed = df[f"{p}_raw"].map(parse_reading)
+        df[f"{p}_value"] = parsed.map(lambda x: x[0])
+        df[f"{p}_qual"] = parsed.map(lambda x: x[1])
+    known = _MISSING | _BDL
+    unreadable = pd.Series(False, index=df.index)
+    for p in ("do", "bod", "ph"):
+        unreadable |= df[f"{p}_value"].isna() & (df[f"{p}_qual"] == "") & ~df[f"{p}_raw"].str.lower().isin(known)
+    if unreadable.any():
+        notes.append(f"{int(unreadable.sum())} reading(s) were unreadable; treated as missing, never as clean.")
+    df["festival_order"] = df["festival"].str.lower().map(FESTIVAL_ORDER).fillna(9).astype(int)
+    df["period"] = df["year"].astype(str) + " " + df["festival"]
+    df["p_order"] = df["year"] * 10 + df["festival_order"]
+    return df
+
+
+def _complete_grid(df: pd.DataFrame) -> pd.DataFrame:
+    """Add an explicit empty row for every ghat / period / phase with no record at all.
+
+    A festival table that a report does not contain is a data gap, so it must show up as one.
+    """
+    periods = df[["period", "year", "festival", "festival_order", "p_order"]].drop_duplicates()
+    ghats = sorted(df["ghat"].unique())
+    full = pd.MultiIndex.from_product([ghats, sorted(periods["period"], key=lambda p: periods.set_index("period").loc[p, "p_order"]), PHASES],
+                                      names=["ghat", "period", "phase"])
+    keep = ["do_raw", "bod_raw", "ph_raw", "do_value", "do_qual", "bod_value", "bod_qual", "ph_value", "ph_qual",
+            "page", "source", "source_url", "water_body", "confidence"]
+    out = df.set_index(["ghat", "period", "phase"])[keep].reindex(full).reset_index()
+    out = out.merge(periods, on="period", how="left")
+    absent = out["source"].isna()
+    out.loc[absent, ["do_raw", "bod_raw", "ph_raw"]] = NO_RECORD
+    out.loc[absent, ["source", "page"]] = NO_RECORD
+    for p in ("do", "bod", "ph"):
+        out[f"{p}_qual"] = out[f"{p}_qual"].fillna("")
+    for col in ("source_url", "water_body", "confidence"):
+        out[col] = out[col].fillna("")
+    # a ghat's water body and match confidence are the same in every period
+    for col in ("water_body", "confidence"):
+        out[col] = out.groupby("ghat")[col].transform(lambda s: next((x for x in s if x), ""))
+    return out.sort_values(["ghat", "p_order", "phase"]).reset_index(drop=True)
+
+
 def link_known_reports(df: pd.DataFrame) -> pd.DataFrame:
-    """For real readings, fill a missing source link (and name) from the year's published report."""
+    """For real readings, fill the source name and link from the year's published report."""
     df = df.copy()
     for i, row in df.iterrows():
         report = report_for_year(row["year"])
@@ -185,60 +189,64 @@ def link_known_reports(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def generate_mock_data(seed: int = 7) -> pd.DataFrame:
-    """Build illustrative data for the 7 ghats (2019-2024). NOT real measurements.
+# ---------------------------------------------------------------- mock data
+MOCK_GHATS = ("Khatlapura ghat", "Prempura ghat", "Rani Kamlapati ghat / Kamla Park kund", "Hathaikheda dam / kund",
+              "Shahpura lake ghat", "Bairagarh (Sant Hirdaram) kund", "Malikhedi kund")
 
-    Includes the messy cases the loader must survive: ``<2`` / ``BDL`` / ``NA`` / blanks,
-    and one ghat (Shahpura) with whole years missing.
+
+def generate_mock_data(seed: int = 7) -> pd.DataFrame:
+    """Illustrative readings in the same long format as the real file. NOT real measurements.
+
+    Mimics the real quirks: BDL, not-sampled and star flags, and two kunds with no Durga 2025 table.
     """
     rng = np.random.default_rng(seed)
-    # name: (baseline DO, baseline BOD, post-Visarjan DO drop, post-Visarjan BOD rise)
-    profile = {
-        "Prempura Ghat": (5.6, 2.6, 1.4, 1.6),
-        "Khatlapura Ghat": (4.8, 3.4, 1.8, 2.2),
-        "Bhadbhada Ghat": (6.4, 2.0, 0.8, 0.9),
-        "Lalghati Ghat": (5.9, 2.4, 1.2, 1.2),
-        "Motia Talab Ghat": (4.3, 4.1, 1.6, 2.6),
-        "Munshi Hussain Khan Talab Ghat": (6.8, 1.7, 0.6, 0.7),
-        "Shahpura Lake Ghat": (6.0, 2.3, 1.0, 1.0),
-    }
+    # ghat: (DO before, BOD before, DO drop during, BOD rise during)
+    profile = {"Khatlapura ghat": (4.8, 3.4, 1.8, 2.2), "Prempura ghat": (5.6, 2.6, 1.4, 1.6),
+               "Rani Kamlapati ghat / Kamla Park kund": (4.3, 4.1, 1.6, 2.6), "Hathaikheda dam / kund": (6.4, 2.0, 0.8, 0.9),
+               "Shahpura lake ghat": (6.0, 2.3, 1.0, 1.0), "Bairagarh (Sant Hirdaram) kund": (5.9, 2.9, 1.5, 1.4),
+               "Malikhedi kund": (6.8, 1.7, 0.6, 0.7)}
     rows = []
     for ghat, (do0, bod0, do_drop, bod_rise) in profile.items():
-        for year in range(2019, 2025):
-            page_base = int(rng.integers(12, 60))
-            for phase in PHASES:
-                post = phase == POST
-                do = do0 - (do_drop if post else 0) + rng.normal(0, 0.35)
-                bod = bod0 + (bod_rise if post else 0) + rng.normal(0, 0.3)
-                rows.append({
-                    "ghat": ghat, "year": year, "phase": phase,
-                    "do_mg_l": f"{max(do, 0.5):.1f}", "bod_mg_l": f"{max(bod, 0.6):.1f}",
-                    "source": f"MOCK - Bhopal Lakes Monitoring Report {year}",
-                    "page": str(page_base + (1 if post else 0)),
-                    "source_url": DEMO_LINKS.get(year, ""),
-                })
+        for year in (2023, 2024, 2025):
+            for festival in ("Ganesh", "Durga"):
+                if festival == "Durga" and year == 2025 and ghat in ("Bairagarh (Sant Hirdaram) kund", "Malikhedi kund"):
+                    continue  # no table in the report
+                page = str(int(rng.integers(12, 80)))
+                for phase, k in (("pre", 0.0), ("during", 1.0), ("after", 0.4)):
+                    vals = {"Dissolved oxygen": max(do0 - k * do_drop + rng.normal(0, .35), 0.5),
+                            "BOD": max(bod0 + k * bod_rise + rng.normal(0, .3), 0.6),
+                            "pH": 7.4 + 0.45 * (k == 1.0) + rng.normal(0, .25)}
+                    for param, v in vals.items():
+                        rows.append({"year": year, "festival": festival, "site": ghat, "water_body": "", "phase": phase,
+                                     "parameter": param, "value": f"{v:.1f}" if param != "pH" else f"{v:.2f}", "flag": "",
+                                     "value_as_printed": "", "site_match_confidence": "high", "source_page": page})
     df = pd.DataFrame(rows)
 
-    # Messy strings and gaps, so the parser and the data-gap rule are exercised.
-    def put(ghat, year, phase, column, value):
-        df.loc[(df.ghat == ghat) & (df.year == year) & (df.phase == phase), column] = value
+    def put(site, year, festival, phase, param, value="", flag="", printed=""):
+        m = (df.site == site) & (df.year == year) & (df.festival == festival) & (df.phase == phase) & (df.parameter == param)
+        df.loc[m, ["value", "flag", "value_as_printed"]] = [value, flag, printed]
 
-    put("Bhadbhada Ghat", 2021, PRE, "bod_mg_l", "<2")      # censored, provably within limit
-    put("Munshi Hussain Khan Talab Ghat", 2020, PRE, "bod_mg_l", "BDL")  # below detection: very low
-    put("Lalghati Ghat", 2022, POST, "do_mg_l", "NA")
-    put("Prempura Ghat", 2023, PRE, "do_mg_l", "")
-    for year in (2021, 2022, 2023):                          # Shahpura: heavy gaps
-        for phase in PHASES:
-            put("Shahpura Lake Ghat", year, phase, "do_mg_l", "NA")
-            put("Shahpura Lake Ghat", year, phase, "bod_mg_l", "NA")
-    df = df[~((df.ghat == "Shahpura Lake Ghat") & (df.year == 2020))]  # whole year absent
+    put("Hathaikheda dam / kund", 2024, "Ganesh", "pre", "BOD", flag="BDL", printed="BDL")
+    put("Prempura ghat", 2023, "Durga", "pre", "BOD", flag="not sampled", printed="_")
+    put("Prempura ghat", 2023, "Durga", "during", "BOD", flag="not sampled", printed="_")
+    put("Prempura ghat", 2023, "Durga", "after", "BOD", flag="not sampled", printed="_")
+    for phase in ("pre", "during", "after"):                      # Shahpura: a whole table missing values
+        for param in ("Dissolved oxygen", "BOD"):
+            put("Shahpura lake ghat", 2024, "Durga", phase, param, flag="not sampled", printed="")
     return df
+
+
+def _mock_frame(notes: list[str]) -> pd.DataFrame:
+    wide = _enrich(_pivot_long(generate_mock_data(), notes=[]), notes=[])
+    wide["source"] = "MOCK - illustrative values, " + wide["period"]
+    wide["source_url"] = wide["year"].map(DEMO_LINKS).fillna("")
+    return wide
 
 
 def load_data(path: Path = DATA_PATH) -> LoadResult:
     """Load the CSV, or fall back to mock data. Never raises."""
     notes: list[str] = []
-    raw, is_mock = None, False
+    raw, cleaned, is_mock = None, None, False
     try:
         if path.exists():
             raw = pd.read_csv(path, dtype=str, keep_default_na=False)
@@ -247,21 +255,18 @@ def load_data(path: Path = DATA_PATH) -> LoadResult:
     except Exception as exc:  # unreadable file, bad encoding, empty file ...
         notes.append(f"Could not read {path.name}: {exc}")
 
-    cleaned = None
     if raw is not None:
         try:
-            cleaned = _clean(raw, notes)
+            cleaned = link_known_reports(_enrich(_pivot_long(raw, notes), notes))
             if cleaned.empty:
                 notes.append("CSV contained no usable rows.")
                 cleaned = None
         except Exception as exc:
             notes.append(f"Could not parse {path.name}: {exc}")
+            cleaned = None
 
     if cleaned is None:
         is_mock = True
         notes.append("Showing generated MOCK data for demonstration only.")
-        cleaned = _clean(generate_mock_data(), notes=[])
-
-    if not is_mock:  # demo numbers are not from the published reports, so they are never linked to them
-        cleaned = link_known_reports(cleaned)
+        cleaned = _mock_frame(notes)
     return LoadResult(df=_complete_grid(cleaned), is_mock=is_mock, notes=notes)

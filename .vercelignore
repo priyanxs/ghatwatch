@@ -2,6 +2,5 @@
 .streamlit
 __pycache__
 *.pyc
-app.py
 requirements-dev.txt
 ghatwatch

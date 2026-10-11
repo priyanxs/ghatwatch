@@ -32,7 +32,7 @@ def report_for_year(year: int) -> dict | None:
 # Demo readings are labelled MOCK, but each links to the real published document for its year so the
 # table can be explored. The page numbers on demo rows are illustrative, so the page is never opened.
 DEMO_LINKS = {
-    **{y: _MPPCB + "comparatives-uppelak-lower-lake-2003-2023.pdf" for y in range(2019, 2023)},
     2023: _MPPCB + "Idol_immer._Report_23_CPCB.pdf",
     2024: _MPPCB + "Ganesh_and_Durga_visarjan_report-2024.pdf",
+    2025: _MPPCB + "Ganesh_and_Durga_visarjan_report-2025.pdf",
 }
