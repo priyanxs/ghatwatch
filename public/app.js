@@ -70,7 +70,7 @@ function siteHeader() {
         [t("hdr.standard"), t("hdr.standard.v")],
         [t("hdr.status"), mock ? t("hdr.strip.demo").split(":")[0] : t("hdr.status.v")],
         [t("hdr.asof"), asOf],
-        ...(OVERVIEW.days_left != null ? [[t("hdr.event"), t("hdr.event.v", { n: OVERVIEW.days_left })]] : []),
+        ...(OVERVIEW.days_left != null ? [[t("hdr.event"), OVERVIEW.days_left === 0 ? t("hdr.event.today") : OVERVIEW.days_left === 1 ? t("hdr.event.one") : t("hdr.event.v", { n: OVERVIEW.days_left })]] : []),
     ].map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
     return `<a class="skip" href="#main">${esc(t("gov.skip"))}</a>
         <div class="utility"><div class="wrap"><div class="grow"></div>

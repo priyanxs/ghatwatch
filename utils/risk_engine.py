@@ -198,13 +198,13 @@ def build_brief(ghat: str, summary: dict) -> dict:
     hi = {"headline": f"{ghat_hi}: {LEVEL_HI[level]} प्राथमिकता (जोखिम स्कोर {s['risk_score']:.0f}/100)", "findings": [], "actions": []}
 
     if s["do_breaches"]:
-        en["findings"].append(f"{s['do_breaches']} of {s['do_tested']} tested DO readings were below the CPCB Class B minimum of {DO_MIN:g} mg/L.")
+        en["findings"].append(f"{s['do_breaches']} of {s['do_tested']} tested DO {'reading' if s['do_breaches'] == 1 else 'readings'} {'was' if s['do_breaches'] == 1 else 'were'} below the CPCB Class B minimum of {DO_MIN:g} mg/L.")
         hi["findings"].append(f"{s['do_tested']} में से {s['do_breaches']} घुलित ऑक्सीजन (DO) माप CPCB श्रेणी-B की न्यूनतम सीमा {DO_MIN:g} mg/L से कम रहे।")
     if s["bod_breaches"]:
-        en["findings"].append(f"{s['bod_breaches']} of {s['bod_tested']} tested BOD readings exceeded the CPCB Class B maximum of {BOD_MAX:g} mg/L.")
+        en["findings"].append(f"{s['bod_breaches']} of {s['bod_tested']} tested BOD {'reading' if s['bod_breaches'] == 1 else 'readings'} exceeded the CPCB Class B maximum of {BOD_MAX:g} mg/L.")
         hi["findings"].append(f"{s['bod_tested']} में से {s['bod_breaches']} BOD माप CPCB श्रेणी-B की अधिकतम सीमा {BOD_MAX:g} mg/L से अधिक रहे।")
     if s["ph_breaches"]:
-        en["findings"].append(f"{s['ph_breaches']} of {s['ph_tested']} tested pH readings were outside {PH_MIN:g} to {PH_MAX:g}.")
+        en["findings"].append(f"{s['ph_breaches']} of {s['ph_tested']} tested pH {'reading' if s['ph_breaches'] == 1 else 'readings'} {'was' if s['ph_breaches'] == 1 else 'were'} outside {PH_MIN:g} to {PH_MAX:g}.")
         hi["findings"].append(f"{s['ph_tested']} में से {s['ph_breaches']} pH माप {PH_MIN:g} से {PH_MAX:g} के बाहर रहे।")
     if not (s["do_tested"] or s["bod_tested"] or s["ph_tested"]):
         en["findings"].append("No usable DO, BOD or pH reading is on record, so this ghat cannot be checked against the limits.")

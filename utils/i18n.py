@@ -248,6 +248,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "hdr.status.v": {"en": "Historical records, not live", "hi": "ऐतिहासिक रिकॉर्ड, लाइव नहीं"},
     "hdr.asof": {"en": "As of", "hi": "दिनांक"},
     "hdr.event": {"en": "Durga Visarjan", "hi": "दुर्गा विसर्जन"},
+    "hdr.event.one": {"en": "20 October 2026 (1 day)", "hi": "20 अक्टूबर 2026 (1 दिन)"},
+    "hdr.event.today": {"en": "20 October 2026 (today)", "hi": "20 अक्टूबर 2026 (आज)"},
     "hdr.event.v": {"en": "20 October 2026 ({n} days)", "hi": "20 अक्टूबर 2026 ({n} दिन)"},
     "foot.formal": {"en": "This assessment ranks Bhopal's immersion ghats from historical MPPCB monitoring records compared with CPCB Class B limits. It is not a live measurement and makes no claim about health effects. Verify conditions on site before acting.",
                     "hi": "यह मूल्यांकन भोपाल के विसर्जन घाटों को MPPCB के ऐतिहासिक निगरानी रिकॉर्ड और CPCB श्रेणी-B सीमाओं की तुलना से क्रमबद्ध करता है। यह लाइव माप नहीं है और स्वास्थ्य प्रभाव के बारे में कोई दावा नहीं करता। कार्रवाई से पहले मौके पर स्थिति की जाँच करें।"},

@@ -63,8 +63,8 @@ def build_weekly_report(ranking: pd.DataFrame, is_mock: bool, today: date | None
           f"{n} में से {high} घाट उच्च जोखिम · {gap}% माप अनुपलब्ध।",
           "ऐतिहासिक रिकॉर्ड, लाइव माप नहीं।"]
     if left is not None:
-        en.append(f"{left} days to Durga Visarjan.")
-        hi.append(f"दुर्गा विसर्जन में {left} दिन।")
+        en.append("Durga Visarjan is today." if left == 0 else f"{left} {'day' if left == 1 else 'days'} to Durga Visarjan.")
+        hi.append("आज दुर्गा विसर्जन है।" if left == 0 else f"दुर्गा विसर्जन में {left} दिन।")
     en += ["Avoid mistakes:"] + [f"{i}. {t[0]}" for i, t in enumerate(tips, 1)] + [f"{SITE} #Bhopal #Visarjan"]
     hi += ["गलतियों से बचें:"] + [f"{i}. {t[1]}" for i, t in enumerate(tips, 1)] + [f"{SITE} #भोपाल #विसर्जन"]
     return {"date": today.isoformat(), "is_demo": is_mock, "caption_en": "\n".join(en), "caption_hi": "\n".join(hi),
