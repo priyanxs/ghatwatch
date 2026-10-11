@@ -1,5 +1,7 @@
 # GhatWatch
 
+**Live site: https://ghatwatch.vercel.app**
+
 Visarjan water-quality decision assistant for BMC officers, Bhopal. Ranks the ghats by **historical**
 water-quality records (CPCB Class B: DO ≥ 5 mg/L, BOD ≤ 3 mg/L). It is not a live safety measurement.
 Missing data is never treated as clean water.
