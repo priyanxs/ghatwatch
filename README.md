@@ -23,6 +23,7 @@ It ranks by **historical** records. It is not a live measurement and makes no cl
 - **Traceable.** Every reading shows its report and page and links to the MPPCB PDF at that page.
 - **Resource plan.** Per ghat: how much it needs aeration (low oxygen), cleaning (organic waste) and extra testing (data gaps).
 - **Honest about gaps.** A "What this data does not cover" panel is built from the data and the guide's caveats.
+- **Latest lake conditions** (monthly, Apr 2025 to Mar 2026, the newest data in the pack) beside each ghat on the Upper or Lower Lake, as context that never changes the score.
 - **Map** of the ghats with risk-coloured markers (positions are approximate, see below).
 - **Bilingual.** Whole interface and the one-page PDF brief in English and Hindi, per ghat and for the whole city.
 - **Also:** year-on-year trend per ghat, Durga Visarjan countdown, WhatsApp share, and a weekly public update (see below).
@@ -48,6 +49,7 @@ Doesn't, or is limited:
   Prempura ghat is an exact feature; the others are the centre of their lake or locality. **Hathaikheda dam / kund** was not found, so it is off the map.
   Fix or add positions in `data/ghat_locations.csv` (`lat`, `lon`).
 - **Score cut-offs** (High ≥ 45, Medium ≥ 30) are a starting point to agree with BMC, not an official standard.
+- The lake monitoring covers only the Upper and Lower Lake stations (mostly water-supply intakes, not the ghats), May is blank, and its BOD is the 3-day, 27°C test, so it is not judged against the 3 mg/L limit.
 - Only DO, BOD and pH have a Class B limit, so only they are scored. There is no coliform data.
 - "Rani Kamlapati ghat / Kamla Park kund" may be two places (medium match confidence). Bairagarh and Malikhedi have no Durga 2025 table.
 - Each festival is sampled only three times, so a short spike between samples can be missed.
@@ -59,6 +61,7 @@ Doesn't, or is limited:
 - Reports (MPPCB): [Ganesh and Durga Visarjan 2025](https://www.mppcb.mp.gov.in/proc/mon/Ganesh_and_Durga_visarjan_report-2025.pdf),
   [2024](https://www.mppcb.mp.gov.in/proc/mon/Ganesh_and_Durga_visarjan_report-2024.pdf),
   [Idol Immersion Report 2023 (CPCB format)](https://www.mppcb.mp.gov.in/proc/mon/Idol_immer._Report_23_CPCB.pdf).
+- Lake monitoring: [Upper and Lower Lake monthly water quality 2025-26](https://xgn.mp.nic.in/File_Upload/MONITORING//Yearly%20Water%20Quality%20Status/2026/July/UPPER%20LAKE-2025-26..pdf), read from the copy in the pack, extracted by `scripts/extract_lake_monitoring.py` and checked against the PDF's own averages, maxima and minima.
 - Limits: [CPCB water quality criteria](https://cpcb.gov.in/water-quality-criteria/), Class B.
 - `data/ghat_locations.csv`: positions looked up in OpenStreetMap (© OpenStreetMap contributors, ODbL). Map tiles © OpenStreetMap contributors.
 - Font: Noto Sans Devanagari (SIL OFL), bundled so the Hindi PDF works on a server.
@@ -71,7 +74,8 @@ No government system was logged into, scraped or written to.
 api/index.py     FastAPI backend (one Vercel Python function)
 public/          static frontend: index.html, style.css, app.js (no build step)
 utils/           data_loader, risk_engine, caveats, locations, i18n, pdf_generator, weekly, publish, sources
-data/            the readings and the ghat positions
+data/            the ghat readings, lake monitoring and ghat positions
+scripts/         extract_lake_monitoring.py (needs `pip install pymupdf`; not used at runtime)
 fonts/           bundled Devanagari font
 ```
 

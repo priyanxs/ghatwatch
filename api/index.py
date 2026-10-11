@@ -32,6 +32,7 @@ from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
 from utils.caveats import build_caveats  # noqa: E402
 from utils.data_loader import PHASES, load_data  # noqa: E402
+from utils.lakes import lake_for_water_body, load_lakes, nearest_station  # noqa: E402
 from utils.locations import load_locations  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
 from utils import publish as social  # noqa: E402
@@ -137,6 +138,7 @@ def overview():
                     data[["period", "year", "festival", "p_order"]].drop_duplicates().sort_values("p_order")[["period", "year", "festival"]].itertuples(index=False)],
         "timeline": timeline(data),
         "caveats": build_caveats(data),
+        "lakes": load_lakes(),
         "is_mock": is_mock,
         "notes": notes,
         "disclaimer": {"en": engine.DISCLAIMER_EN, "hi": engine.DISCLAIMER_HI},
@@ -162,6 +164,8 @@ def ghat_detail(ghat: str):
         "ghat_hi": i18n.ghat_name(ghat, "hi"),
         "rank": summary["rank"],
         "water_body": next((x for x in rows["water_body"] if x), ""),
+        "lake": lake_for_water_body(next((x for x in rows["water_body"] if x), "")),
+        "nearest_station": nearest_station(ghat, [s for s in load_lakes()["stations"] if s["lake"] == lake_for_water_body(next((x for x in rows["water_body"] if x), ""))]),
         "confidence": next((x for x in rows["confidence"] if x), ""),
         "summary": summary,
         "readings": readings.to_dict("records"),

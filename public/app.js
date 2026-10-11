@@ -129,6 +129,22 @@ function sourceCell(r) {
     return `<a href="${esc(r.source_url + page)}" target="_blank" rel="noopener noreferrer" title="${esc(t(demo ? "e.open.demo" : "e.open"))}">${name} ↗</a>`;
 }
 
+/** Lake monitoring (Apr 2025 to Mar 2026): the newest data in the pack. Context beside the ghat, never part of its score. */
+const shortStation = (n) => n.replace(/^(Upper|Lower) Lake\s*(at|near)?\s*(Bhopal)?\s*/i, "").replace(/\s*,?\s*Spill Out Let.*$/i, "").trim() || n;
+function lakesCard(d) {
+    const stations = OVERVIEW.lakes.stations.filter((s) => s.lake === d.lake);
+    if (!d.lake || !stations.length) return `<div class="card"><h2>${esc(t("sec.lakes"))}</h2><p class="note" style="margin-top:6px">${esc(t("lakes.none"))}</p></div>`;
+    const range = (a, b, n) => (a == null ? "—" : `${a}–${b} · <b>${n}</b>`);
+    const rows = stations.map((s) => `<tr class="${s.id === d.nearest_station ? "near" : ""}"><td class="name">${esc(s.name)}${s.id === d.nearest_station
+        ? ` <span class="tagnear">${esc(t("lakes.nearest"))}</span>` : ""}</td><td>${s.months_measured}</td><td>${range(s.do_min, s.do_max, s.do_months_below)}</td>
+        <td>${range(s.ph_min, s.ph_max, s.ph_months_outside)}</td><td>${s.bod3_max ?? "—"}</td></tr>`).join("");
+    return `<div class="card"><h2>${esc(t("sec.lakes"))}</h2><p class="note" style="margin:4px 0 8px">${esc(t("lakes.help"))}</p>
+        <div id="chart-lake" class="chart" style="min-height:300px"></div>
+        <div class="table-wrap"><table><thead><tr><th>${esc(t("lakes.station"))}</th><th>${esc(t("lakes.months"))}</th><th>${esc(t("lakes.do"))}</th>
+        <th>${esc(t("lakes.ph"))}</th><th>${esc(t("lakes.bod"))}</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <p class="note" style="margin-top:8px">${esc(t("lakes.bodnote"))}</p></div>`;
+}
+
 function readingsTable(d) {
     const rows = d.readings.map((r) => `<tr><td>${esc(r.period)}</td><td>${esc(label("phase", r.phase))}</td>
         <td>${readingCell(r.do_raw, r.do_status)}</td><td>${readingCell(r.bod_raw, r.bod_status)}</td><td>${readingCell(r.ph_raw, r.ph_status)}</td>
@@ -172,6 +188,7 @@ function detail(d) {
             ${s.floor_applied ? `<div class="callout info">${esc(t("d.floor", { m: OVERVIEW.weights.medium_at }))}</div>` : ""}</div>
             ${ring(s.risk_score, s.risk_level)}</div>
         ${latestTiles(d)}
+        ${lakesCard(d)}
         <div class="two" style="margin-top:18px"><div class="card why" style="margin:0"><h3>${esc(t("sec.why"))}</h3>${list(brief.findings)}</div>
             <div class="card do" style="margin:0"><h3>${esc(t("sec.do"))}</h3>${list(brief.actions)}</div></div>
         <div class="card"><h2>${esc(t("sec.trend"))}</h2><div class="charts"><div class="chart" id="chart-do"></div><div class="chart" id="chart-bod"></div><div class="chart" id="chart-ph"></div></div>
@@ -295,6 +312,20 @@ function chartsAvailable() {
     return false;
 }
 
+/** Monthly DO at each station of the ghat's lake, with the 5 mg/L limit. A gap (May) is a gap, not a pass. */
+function drawLakeChart(d) {
+    const el = $("#chart-lake");
+    if (!el) return;
+    const L = OVERVIEW.lakes, stations = L.stations.filter((s) => s.lake === d.lake), colours = ["#0E7490", "#F59E0B", "#059669", "#7C3AED", "#DC2626"];
+    const traces = stations.map((s, i) => ({ x: L.months, y: s.series.do, name: shortStation(s.name), mode: "lines+markers", connectgaps: false,
+        line: { color: colours[i % colours.length], width: s.id === d.nearest_station ? 4 : 2.2 }, marker: { size: 6 },
+        customdata: L.months.map((m) => s.dates[m] || ""), hovertemplate: "<b>%{fullData.name}</b><br>%{x} (%{customdata}): %{y} mg/L<extra></extra>" }));
+    Plotly.newPlot(el, traces, { ...PLOT_BASE, title: { text: t("lakes.chart"), font: { size: 14 }, x: 0.02 },
+        xaxis: { ...AXIS, type: "category", categoryorder: "array", categoryarray: L.months }, yaxis: { ...AXIS, title: "mg/L", rangemode: "tozero" },
+        shapes: [hline(OVERVIEW.limits.do_min)], annotations: [{ xref: "paper", x: 1, y: 1, yref: "paper", yanchor: "bottom", xanchor: "right", text: t("tr.lim.do", { v: OVERVIEW.limits.do_min }), showarrow: false, font: { size: 11 } }],
+        height: 300, margin: { l: 44, r: 8, t: 50, b: 40 }, legend: { orientation: "h", y: -0.2 }, hovermode: "x unified" }, PLOT_CFG);
+}
+
 /** One line per phase over every period. A null value breaks the line: no data is never drawn as "clean". */
 function drawTrend(el, readings, param, title, limitShapes, limitText) {
     const keys = OVERVIEW.periods.map((p) => p.key);
@@ -345,6 +376,7 @@ async function loadDetail() {
     if (!chartsAvailable()) return;
     drawTrend($("#chart-do"), d.readings, "do", t("tr.do"), [hline(lim.do_min)], t("tr.lim.do", { v: lim.do_min }));
     drawTrend($("#chart-bod"), d.readings, "bod", t("tr.bod"), [hline(lim.bod_max)], t("tr.lim.bod", { v: lim.bod_max }));
+    drawLakeChart(d);
     drawTrend($("#chart-ph"), d.readings, "ph", t("tr.ph"), [{ type: "rect", xref: "paper", x0: 0, x1: 1, y0: lim.ph_min, y1: lim.ph_max, fillcolor: "rgba(5,150,105,.10)", line: { width: 0 } }],
         t("tr.lim.ph", { v: phRange() }));
 }

@@ -43,6 +43,8 @@ FIXED = [
      "hi": "“रानी कमलापति घाट / कमला पार्क कुंड” दो अलग स्थान हो सकते हैं: गणेश तालिकाओं में कमला पार्क कुंड और दुर्गा तालिकाओं में निचली झील घाट लिखा है। मिलान मध्यम विश्वसनीयता का है।"},
     {"en": "BDL / ND (below detection limit) is read as “very low”, not zero and not missing: a pass for BOD, no usable result for DO and pH.",
      "hi": "BDL / ND (पहचान सीमा से कम) को “बहुत कम” माना गया है, शून्य या अनुपलब्ध नहीं: BOD के लिए सीमा के भीतर, DO और pH के लिए कोई उपयोगी परिणाम नहीं।"},
+    {"en": "The lake monitoring (April 2025 to March 2026) is context only and never changes a ghat's score. Its stations are mostly water-supply intakes, not the ghats; May is blank everywhere; the report labels April as 01-04-2026, read here as April 2025; and its BOD is the 3-day, 27 C test, so it is not compared with the 3 mg/L limit.",
+     "hi": "झील निगरानी (अप्रैल 2025 से मार्च 2026) केवल संदर्भ के लिए है और किसी घाट का स्कोर नहीं बदलती। इसके स्टेशन ज़्यादातर जलापूर्ति के इनटेक हैं, घाट नहीं; मई हर जगह खाली है; रिपोर्ट अप्रैल को 01-04-2026 लिखती है, जिसे यहाँ अप्रैल 2025 पढ़ा गया है; और इसका BOD 3-दिन, 27 °C परीक्षण है, इसलिए इसकी तुलना 3 mg/L सीमा से नहीं की गई।"},
     {"en": "The ranking compares readings with legal limits only. It makes no claim about health effects.",
      "hi": "रैंकिंग केवल माप की कानूनी सीमाओं से तुलना करती है। स्वास्थ्य पर प्रभाव के बारे में कोई दावा नहीं किया गया है।"},
 ]

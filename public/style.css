@@ -205,3 +205,6 @@ td a:hover { text-decoration: underline; }
 .pop-btn { border: 0; background: var(--deep); color: #fff; font: 700 .82rem var(--font); padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .pop-btn:hover { background: var(--teal); }
 #map .leaflet-tile-pane { filter: saturate(.8) contrast(.96) brightness(1.02); }
+
+.tagnear { font-size: .68rem; font-weight: 800; color: var(--teal); background: #E0F2F6; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+tr.near td { background: #F1FAFB; }

@@ -18,6 +18,10 @@ SOURCE_REPORTS = [
 ]
 
 REFERENCE_LINKS = [
+    {"title": "Upper and Lower Lake monthly water quality 2025-26, MPPCB (lake context)",
+     "url": "https://xgn.mp.nic.in/File_Upload/MONITORING//Yearly%20Water%20Quality%20Status/2026/July/UPPER%20LAKE-2025-26..pdf"},
+    {"title": "Copy of that report in the Track 2 pack",
+     "url": "https://github.com/Laaaaksh/bhopal-impact-lab-2026/blob/main/tracks/02-visarjan-ghat-watch/resources/Upper_Lower_Lake_monthly_2025-26_from_xgn.pdf"},
     {"title": "CPCB water quality criteria (the Class B limits used)", "url": "https://cpcb.gov.in/water-quality-criteria/"},
 ]
 
