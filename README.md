@@ -64,6 +64,14 @@ The one user is the BMC officer who plans Durga visarjan (20 October 2026) and d
 ![Lake monitoring](docs/screenshots/08-lake-monitoring.png)
 ![Lake data table](docs/screenshots/09-lake-data-table.png)
 
+**All readings:** every one of the 1,524 readings, all 13 parameters, filterable by ghat, period, parameter and phase, each with the report page it came from (opening the MPPCB PDF at that page) and a CSV download. Only dissolved oxygen, BOD and pH have a Class B limit, so only they get a result.
+
+![All readings](docs/screenshots/15-all-readings.png)
+
+**Every source document**, with what it is used for (and which pack documents are not used), plus the original and pack-copy links.
+
+![Source documents](docs/screenshots/16-source-documents.png)
+
 **Honest about gaps:** a "what this data does not cover" panel, built from the data and the guide's caveats.
 
 ![What the data does not cover](docs/screenshots/10-what-the-data-does-not-cover.png)
@@ -100,6 +108,8 @@ The one user is the BMC officer who plans Durga visarjan (20 October 2026) and d
 | Resource plan | Per ghat: how much it needs **aeration** (low oxygen), **cleaning** (organic waste) and **extra testing** (data gaps). |
 | Map | Real map of Bhopal with risk-coloured markers; click one to open that ghat. |
 | Period-by-period grid | Every ghat and festival period, with before / during / one week after cells; missing data is hatched. |
+| All readings explorer | All 1,524 readings and all 13 parameters, filterable and paged, each linked to its report page, with a CSV download. |
+| Complete source list | Every document in the guide with what it is used for, and links to the original and to the copy in the pack. |
 | Latest lake monitoring | Monthly lake data, Apr 2025 to Mar 2026 (the newest in the pack), as context that never changes a score. |
 | Trend and countdown | Better or worse than last year for each ghat, and days left to Durga Visarjan. |
 | Verified totals | The engine reproduces the organisers' own totals: **42 of 116** DO readings below 5 mg/L and **100 of 112** BOD readings above 3 mg/L. |
@@ -161,6 +171,7 @@ utils/
   locations.py          map positions
   i18n.py               English and Hindi interface text
   pdf_generator.py      one-page PDFs (English + Hindi)
+  allreadings.py        every reading (13 parameters) for the explorer and the CSV
   weekly.py, publish.py weekly caption and optional social posting
   sources.py, clock.py  report links; India-time dates
 data/                   readings, lake monitoring, ghat positions (see data/README.md)
@@ -184,7 +195,7 @@ vercel.json             headers, cron schedule, function settings
 | blank, `NA`, `_`, `-`, `*`, `**`, `not sampled` | missing, **never** counted as clean |
 | a whole festival table absent from a report | missing, shown as a gap |
 
-Each reading carries its source page; the site links it to the matching MPPCB report (the year's PDF, opened at that page).
+The **All readings** section lists every reading in the file, all 13 parameters, and `/api/readings.csv` downloads them. Each reading carries its source page; the site links it to the matching MPPCB report (the year's PDF, opened at that page).
 The loader never crashes on bad input: an empty, wrong or broken file falls back to clearly labelled demo data.
 See [`data/README.md`](data/README.md) for the file formats.
 
@@ -212,6 +223,8 @@ Import the repository on [vercel.com/new](https://vercel.com/new); no build comm
 | `GET /api/overview` | metrics, limits, weights, ranking, resource needs, period grid, caveats, lake data, sources |
 | `GET /api/ghats/{id}` | summary, every reading with its CPCB status, bilingual brief |
 | `GET /api/ghats/{id}/brief.pdf` | one-page English + Hindi brief for a ghat |
+| `GET /api/readings` | every reading (all 13 parameters) as compact rows, for the explorer |
+| `GET /api/readings.csv` | the same readings as a CSV download |
 | `GET /api/readiness.pdf` | one-page brief ranking all ghats |
 | `GET /api/weekly-report` | this week's captions (preview; never posts) |
 | `GET /api/cron/weekly-post` | cron only; posts when configured |

@@ -19,3 +19,5 @@ Replace the file with newer data in the same format to update the site. If it is
 A row without coordinates keeps that ghat off the map.
 
 `lake_monitoring_2025_26.csv` is the pack's monthly lake report (Upper Lake: 4 stations, Lower Lake: Kalighat), April 2025 to March 2026: DO, pH and BOD (3 days, 27°C), one row per station / month / parameter, with the PDF page. It is context only and is not scored.
+
+The site's **All readings** section and `/api/readings.csv` expose every row of `bhopal_ghats_2023_2025.csv` (all 13 parameters), not just the three that are scored.
