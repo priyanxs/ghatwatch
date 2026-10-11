@@ -1,0 +1,5 @@
+# Local development: the API server plus the optional Streamlit dashboard (app.py).
+-r requirements.txt
+uvicorn
+streamlit
+plotly
