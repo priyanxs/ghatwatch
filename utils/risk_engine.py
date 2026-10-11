@@ -45,7 +45,10 @@ LEVEL_HI = {"High": "उच्च", "Medium": "मध्यम", "Low": "नि�
 
 # ---------------------------------------------------------------- per-reading checks
 def check_do(value: float, qual: str) -> str:
-    """Status of one DO reading. A censored value only counts when it settles the question."""
+    """Status of one DO reading. A censored value only counts when it settles the question.
+
+    BDL / ND ("very low") cannot be read as a DO result either way, so it stays NO DATA.
+    """
     if pd.isna(value):
         return NO_DATA
     if qual == "<":                       # true value is below `value`
@@ -56,7 +59,12 @@ def check_do(value: float, qual: str) -> str:
 
 
 def check_bod(value: float, qual: str) -> str:
-    """Status of one BOD reading. ``"<2"`` is a pass; ``"<5"`` proves nothing."""
+    """Status of one BOD reading. ``"<2"`` is a pass; ``"<5"`` proves nothing.
+
+    BDL / ND means very low organic load, so it is a pass (not zero, and not missing).
+    """
+    if qual == "BDL":
+        return PASS
     if pd.isna(value):
         return NO_DATA
     if qual == "<":
@@ -170,7 +178,10 @@ def build_brief(ghat: str, summary: dict) -> dict:
                               f"the CPCB Class B maximum of {BOD_MAX:g} mg/L.")
         hi["findings"].append(f"{s['bod_tested']} में से {s['bod_breaches']} BOD माप "
                               f"CPCB श्रेणी-B की अधिकतम सीमा {BOD_MAX:g} mg/L से अधिक रहे।")
-    if not (s["do_breaches"] or s["bod_breaches"]):
+    if not (s["do_tested"] or s["bod_tested"]):
+        en["findings"].append("No usable DO or BOD reading is on record, so this ghat cannot be checked against the limits.")
+        hi["findings"].append("कोई उपयोगी DO या BOD माप दर्ज नहीं है, इसलिए इस घाट को सीमाओं के विरुद्ध जाँचा नहीं जा सकता।")
+    elif not (s["do_breaches"] or s["bod_breaches"]):
         en["findings"].append("No CPCB Class B breach in the readings that are on record.")
         hi["findings"].append("उपलब्ध रिकॉर्ड में CPCB श्रेणी-B की कोई सीमा-उल्लंघन नहीं मिला।")
 

@@ -162,6 +162,8 @@ STRINGS: dict[str, dict[str, str]] = {
                    "verify on site before acting.",
              "hi": "GhatWatch · भोपाल नगर निगम के लिए निर्णय सहायता। ऐतिहासिक रिकॉर्ड पर आधारित; "
                    "कार्रवाई से पहले स्थल पर जाँच करें।"},
+    "tr.offline": {"en": "Charts could not be loaded (check the internet connection). The tables still show every reading.",
+                   "hi": "चार्ट लोड नहीं हो सके (इंटरनेट कनेक्शन जाँचें)। तालिकाओं में हर माप अब भी दिख रहा है।"},
     "err.load": {"en": "Could not load this ghat ({e}). Please try again.",
                  "hi": "यह घाट लोड नहीं हो सका ({e})। कृपया पुनः प्रयास करें।"},
     # --- value labels

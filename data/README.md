@@ -16,5 +16,10 @@ One row per ghat / year / phase:
 | `page` | PDF page number in that report |
 | `source_url` | optional: web link to the report (`https://…`). Shown as a clickable link in the evidence table; for `.pdf` links it opens at the cited `page`. Anything that is not an `http(s)` link is ignored. |
 
-`do_mg_l` and `bod_mg_l` may contain lab strings: `<2` (below detection limit), `BDL`, `NA`, blanks.
-Unreadable or missing values are never counted as clean water.
+`do_mg_l` and `bod_mg_l` may contain lab strings.
+
+| value | treated as |
+| --- | --- |
+| `<2` | below 2: a pass for BOD (provably under 3), no data for DO |
+| `BDL`, `ND` | below detection / not detected, "very low": a pass for BOD, no data for DO |
+| blank, `NA`, `_`, `-`, `*`, `**`, `not sampled` | missing: **never** counted as clean water |

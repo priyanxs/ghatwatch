@@ -177,7 +177,7 @@ function compareSection() {
             }).join("");
             return `<td><div class="cellpair">${pair}</div></td>`;
         }).join("");
-        return `<tr class="click ${r.ghat === state.ghat ? "sel" : ""}" data-ghat="${esc(r.ghat)}"><td class="name">${esc(ghatName(r))}</td>${cells}</tr>`;
+        return `<tr class="click ${r.ghat === state.ghat ? "sel" : ""}" data-ghat="${esc(r.ghat)}" tabindex="0"><td class="name">${esc(ghatName(r))}</td>${cells}</tr>`;
     }).join("");
     const legend = [["c-pass", "lg.pass"], ["c-breach", "lg.breach"], ["c-nodata", "lg.nodata"]]
         .map(([c, k]) => `<span><i class="${c}"></i>${esc(t(k))}</span>`).join("");
@@ -196,6 +196,12 @@ function sourcesSection() {
 }
 
 // ---------------------------------------------------------------- charts
+/** Plotly comes from a CDN; if it is blocked, say so in place of the charts and keep everything else working. */
+function chartsAvailable() {
+    if (typeof Plotly !== "undefined") return true;
+    document.querySelectorAll(".chart, #chart-compare").forEach((el) => (el.innerHTML = `<p class="note">${esc(t("tr.offline"))}</p>`));
+    return false;
+}
 const AXIS = { gridcolor: "#E6F0F2", fixedrange: true };
 const PLOT_BASE = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", template: "plotly_white",
     font: { family: "'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif", color: "#0F2A33", size: 12 } };
@@ -222,6 +228,7 @@ function drawTrend(el, readings, param, title, limit, limitText) {
 
 /** Horizontal bars, one per ghat, coloured by risk level. Clicking a bar opens that ghat. */
 function drawCompare() {
+    if (!chartsAvailable()) return;
     const rows = OVERVIEW.ranking;
     const el = $("#chart-compare");
     Plotly.newPlot(el, [{
@@ -236,15 +243,18 @@ function drawCompare() {
 
 // ---------------------------------------------------------------- rendering + events
 async function loadDetail() {
-    const slot = $("#detail");
+    const slot = $("#detail"), wanted = state.ghat, lang = state.lang;
     try {
-        detailCache[state.ghat] ||= await api(`/api/ghats/${encodeURIComponent(state.ghat)}`);
+        detailCache[wanted] ||= await api(`/api/ghats/${encodeURIComponent(wanted)}`);
     } catch (err) {
+        if (wanted !== state.ghat) return;
         slot.innerHTML = `<div class="notice error">${esc(t("err.load", { e: err.message }))}</div>`;
         return;
     }
-    const d = detailCache[state.ghat], lim = OVERVIEW.limits;
+    if (wanted !== state.ghat || lang !== state.lang) return;  // a newer selection or language took over
+    const d = detailCache[wanted], lim = OVERVIEW.limits;
     slot.innerHTML = detail(d);
+    if (!chartsAvailable()) return;
     drawTrend($("#chart-do"), d.readings, "do", t("tr.do"), lim.do_min, t("tr.lim.do", { v: lim.do_min }));
     drawTrend($("#chart-bod"), d.readings, "bod", t("tr.bod"), lim.bod_max, t("tr.lim.bod", { v: lim.bod_max }));
 }
@@ -264,7 +274,10 @@ function render() {
         document.querySelectorAll("[data-filter]").forEach((c) => c.setAttribute("aria-pressed", c.dataset.filter === state.filter));
         $("#rank-list").innerHTML = rankRows(); bindRankList();
     }));
-    document.querySelectorAll(".matrix tr.click").forEach((tr) => (tr.onclick = () => selectGhat(tr.dataset.ghat)));
+    document.querySelectorAll(".matrix tr.click").forEach((tr) => {
+        tr.onclick = () => selectGhat(tr.dataset.ghat);
+        tr.onkeydown = (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), selectGhat(tr.dataset.ghat));
+    });
     bindRankList();
     drawCompare();
     return loadDetail();

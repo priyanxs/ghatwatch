@@ -41,10 +41,12 @@ MOCK_GHATS = (
 
 NO_RECORD = "(no record)"
 
-# Tokens meaning "nothing usable was recorded". A bare "BDL" is in this group on purpose:
-# without the numeric detection limit we cannot prove compliance either way.
-_MISSING = {"", "na", "n/a", "nan", "none", "null", "-", "--", "nm", "nt",
-            "not measured", "not tested", "bdl", "nd", "<dl", "below detection limit"}
+# Tokens meaning "nothing usable was recorded". The guide's blank codes (_ - * **) and "not sampled" are
+# missing, never clean.
+_MISSING = {"", "na", "n/a", "nan", "none", "null", "-", "--", "_", "*", "**", "nm", "nt",
+            "not measured", "not tested", "not sampled"}
+# BDL / ND = below detection limit / not detected: "very low, not zero, not missing".
+_BDL = {"bdl", "nd", "<dl", "below detection limit", "not detected"}
 _NUMBER = re.compile(r"^([<>]?)\s*(-?\d+(?:\.\d+)?)$")
 
 COLUMN_ALIASES = {
@@ -69,7 +71,8 @@ def parse_reading(raw) -> tuple[float, str]:
     """Parse one lab value into ``(number, qualifier)``.
 
     Qualifier is ``""`` for an exact value, ``"<"`` / ``">"`` for a censored one
-    (e.g. ``"<2"`` -> ``(2.0, "<")``). Anything unreadable or empty -> ``(nan, "")``.
+    (e.g. ``"<2"`` -> ``(2.0, "<")``), and ``"BDL"`` (no number) for below-detection-limit / not-detected.
+    Anything unreadable or empty -> ``(nan, "")``.
     """
     try:
         if raw is None or (isinstance(raw, float) and np.isnan(raw)):
@@ -77,6 +80,8 @@ def parse_reading(raw) -> tuple[float, str]:
         text = str(raw).strip().lower()
         if text in _MISSING:
             return np.nan, ""
+        if text in _BDL:
+            return np.nan, "BDL"
         text = text.replace("mg/l", "").replace("<=", "<").replace(">=", ">")
         text = text.replace("≤", "<").replace("≥", ">").replace(",", ".").strip()
         match = _NUMBER.match(text)
@@ -137,8 +142,9 @@ def _clean(raw: pd.DataFrame, notes: list[str]) -> pd.DataFrame:
         df[f"{prefix}_value"] = parsed.map(lambda p: p[0])
         df[f"{prefix}_qual"] = parsed.map(lambda p: p[1])
 
-    unreadable = ((df["do_value"].isna() & ~df["do_raw"].str.lower().isin(_MISSING))
-                  | (df["bod_value"].isna() & ~df["bod_raw"].str.lower().isin(_MISSING)))
+    known = _MISSING | _BDL
+    unreadable = ((df["do_value"].isna() & (df["do_qual"] == "") & ~df["do_raw"].str.lower().isin(known))
+                  | (df["bod_value"].isna() & (df["bod_qual"] == "") & ~df["bod_raw"].str.lower().isin(known)))
     if unreadable.any():
         notes.append(f"{int(unreadable.sum())} row(s) had an unreadable DO/BOD value; "
                      "treated as missing, never as clean.")
@@ -218,7 +224,7 @@ def generate_mock_data(seed: int = 7) -> pd.DataFrame:
         df.loc[(df.ghat == ghat) & (df.year == year) & (df.phase == phase), column] = value
 
     put("Bhadbhada Ghat", 2021, PRE, "bod_mg_l", "<2")      # censored, provably within limit
-    put("Munshi Hussain Khan Talab Ghat", 2020, PRE, "bod_mg_l", "BDL")  # no limit given
+    put("Munshi Hussain Khan Talab Ghat", 2020, PRE, "bod_mg_l", "BDL")  # below detection: very low
     put("Lalghati Ghat", 2022, POST, "do_mg_l", "NA")
     put("Prempura Ghat", 2023, PRE, "do_mg_l", "")
     for year in (2021, 2022, 2023):                          # Shahpura: heavy gaps
