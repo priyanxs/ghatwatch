@@ -227,3 +227,13 @@ footer.site a { color: #fff; font-size: .86rem; }
     .docinfo > div:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
 }
 body.hc .nav a { color: #fff; } body.hc .nav a:hover, body.hc .nav a:focus-visible { background: #fff; color: #000; }
+
+/* ---------------------------------------------------------------- all readings and source documents */
+.rd-controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.rd-controls label { display: grid; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+.rd-controls select { min-width: 150px; max-width: 260px; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--card); color: var(--ink); font: .88rem var(--font); }
+.rd-controls .btn.small { margin-top: 0; }
+.flag { font-size: .72rem; font-weight: 700; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 2px; background: var(--soft); color: var(--muted); }
+.pager { display: flex; align-items: center; gap: 14px; margin-top: 12px; font-size: .86rem; color: var(--muted); }
+.chip:disabled { opacity: .45; cursor: not-allowed; }
+.docs td { white-space: normal; } .docs td:nth-child(4) { white-space: nowrap; }

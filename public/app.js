@@ -61,7 +61,7 @@ function siteHeader() {
     const asOf = new Date(OVERVIEW.as_of + "T00:00:00").toLocaleDateString(lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" });
     const langBtns = Object.entries(I18N.languages).map(([code, name]) => `<button class="ubtn" data-lang="${code}" aria-pressed="${code === lang}" lang="${code}">${esc(name)}</button>`).join("");
     const sizeBtns = [["", "A"], ["lg", "A+"], ["xl", "A++"]].map(([v, l]) => `<button class="ubtn" data-size="${v}" aria-pressed="${state.size === v}" aria-label="${esc(t("gov.textsize"))} ${l}">${l}</button>`).join("");
-    const nav = [["overview", "nav.overview"], ["ranking", "nav.ranking"], ["compare", "nav.compare"], ["lakes", "nav.lakes"], ["limits", "nav.limits"], ["sources", "nav.sources"]]
+    const nav = [["overview", "nav.overview"], ["ranking", "nav.ranking"], ["compare", "nav.compare"], ["lakes", "nav.lakes"], ["readings", "nav.readings"], ["limits", "nav.limits"], ["sources", "nav.sources"]]
         .map(([id, k]) => `<a href="#${id}" data-nav="${id}">${esc(t(k))}</a>`).join("");
     const facts = [
         [t("hdr.prepared"), t("hdr.prepared.v")],
@@ -294,11 +294,70 @@ function weeklySection() {
         <p class="note" style="margin-top:10px"><b>${esc(status)}</b></p></div>`;
 }
 
+/** The all-readings explorer: every reading, all 13 parameters, fetched when the section scrolls into view. */
+let READ = null;
+const rd = { ghat: "", period: "", param: "", phase: "", page: 0 }, READ_PAGE = 40;
+
+function readingsSection() {
+    return `<div class="card" id="readings" style="margin-top:28px"><h2>${esc(t("sec.readings"))}</h2><p class="note" style="margin:4px 0 12px">${esc(t("readings.help"))}</p>
+        <div id="readings-body"><p class="note" role="status">${esc(t("readings.loading"))}</p></div></div>`;
+}
+
+async function ensureReadings() {
+    const body = $("#readings-body");
+    if (!body) return;
+    if (!READ) {
+        try { READ = await api("/api/readings"); } catch (err) { body.innerHTML = `<div class="notice error">${esc(t("readings.err", { e: err.message }))}</div>`; return; }
+    }
+    renderReadings();
+}
+
+function renderReadings() {
+    const body = $("#readings-body");
+    if (!body || !READ) return;
+    const opts = (items, current) => `<option value="">${esc(t("readings.f.all"))}</option>` + items.map(([v, label]) => `<option value="${esc(v)}" ${v === current ? "selected" : ""}>${esc(label)}</option>`).join("");
+    const sel = (id, label, html) => `<label>${esc(label)}<select id="${id}">${html}</select></label>`;
+    body.innerHTML = `<div class="rd-controls">
+        ${sel("rd-ghat", t("readings.f.ghat"), opts(READ.ghats.map((g) => [g.name, state.lang === "hi" ? g.name_hi : g.name]), rd.ghat))}
+        ${sel("rd-period", t("readings.f.period"), opts(READ.periods.map((p) => [p, p]), rd.period))}
+        ${sel("rd-param", t("readings.f.param"), opts(READ.parameters.map((p) => [p, label("param", p)]), rd.param))}
+        ${sel("rd-phase", t("readings.f.phase"), opts(READ.phases.map((p) => [p, label("phase", p)]), rd.phase))}
+        <button class="chip" id="rd-reset" type="button">${esc(t("readings.reset"))}</button>
+        <a class="btn small" href="/api/readings.csv" download>${esc(t("readings.csv"))}</a></div><div id="readings-table"></div>`;
+    [["rd-ghat", "ghat"], ["rd-period", "period"], ["rd-param", "param"], ["rd-phase", "phase"]].forEach(([id, key]) => ($("#" + id).onchange = (e) => { rd[key] = e.target.value; rd.page = 0; renderReadingsTable(); }));
+    $("#rd-reset").onclick = () => { Object.assign(rd, { ghat: "", period: "", param: "", phase: "", page: 0 }); renderReadings(); };
+    renderReadingsTable();
+}
+
+function renderReadingsTable() {
+    const c = Object.fromEntries(READ.columns.map((name, i) => [name, i])), hiName = Object.fromEntries(READ.ghats.map((g) => [g.name, g.name_hi]));
+    const rows = READ.rows.filter((r) => (!rd.ghat || r[c.ghat] === rd.ghat) && (!rd.period || r[c.period] === rd.period) && (!rd.param || r[c.parameter] === rd.param) && (!rd.phase || r[c.phase] === rd.phase));
+    const pages = Math.max(1, Math.ceil(rows.length / READ_PAGE)); rd.page = Math.min(rd.page, pages - 1);
+    const slice = rows.slice(rd.page * READ_PAGE, (rd.page + 1) * READ_PAGE), from = rows.length ? rd.page * READ_PAGE + 1 : 0, to = rd.page * READ_PAGE + slice.length;
+    const line = slice.map((r) => {
+        const value = r[c.as_printed] || r[c.value] || "—", flag = r[c.flag] && r[c.flag] !== r[c.as_printed] ? ` <span class="flag">${esc(r[c.flag])}</span>` : "";
+        const result = r[c.result] ? `<span class="${STATUS[r[c.result]][0]}">${esc(label("status", r[c.result]))}</span>` : `<span class="note">${esc(t("readings.nolimit"))}</span>`;
+        const page = /^\d+$/.test(r[c.page]) ? (/^https?:\/\//i.test(r[c.report_url]) ? `<a href="${esc(r[c.report_url] + "#page=" + r[c.page])}" target="_blank" rel="noopener noreferrer" title="${esc(r[c.report])}">${esc(t("readings.pg", { n: r[c.page] }))} ↗</a>` : esc(t("readings.pg", { n: r[c.page] }))) : "—";
+        return `<tr><td>${esc(state.lang === "hi" ? hiName[r[c.ghat]] || r[c.ghat] : r[c.ghat])}</td><td>${esc(r[c.period])}</td><td>${esc(label("phase", r[c.phase]))}</td><td>${esc(label("param", r[c.parameter]))}</td>
+            <td>${esc(value)}${flag}</td><td>${esc(r[c.unit] || "—")}</td><td>${result}</td><td>${page}</td></tr>`;
+    }).join("");
+    $("#readings-table").innerHTML = rows.length ? `<p class="note" style="margin:12px 0 6px" role="status">${esc(t("readings.showing", { from, to, n: rows.length }))}</p>
+        <div class="table-wrap"><table><thead><tr><th>${esc(t("readings.f.ghat"))}</th><th>${esc(t("readings.f.period"))}</th><th>${esc(t("readings.f.phase"))}</th><th>${esc(t("readings.f.param"))}</th>
+        <th>${esc(t("readings.c.value"))}</th><th>${esc(t("readings.c.unit"))}</th><th>${esc(t("readings.c.result"))}</th><th>${esc(t("readings.c.page"))}</th></tr></thead><tbody>${line}</tbody></table></div>
+        <div class="pager"><button class="chip" id="rd-prev" ${rd.page === 0 ? "disabled" : ""}>${esc(t("readings.prev"))}</button><span>${rd.page + 1} / ${pages}</span><button class="chip" id="rd-next" ${rd.page >= pages - 1 ? "disabled" : ""}>${esc(t("readings.next"))}</button></div>`
+        : `<p class="note" style="margin-top:12px">${esc(t("readings.none"))}</p>`;
+    const prev = $("#rd-prev"), next = $("#rd-next");
+    if (prev) prev.onclick = () => { rd.page -= 1; renderReadingsTable(); };
+    if (next) next.onclick = () => { rd.page += 1; renderReadingsTable(); };
+}
+
 function sourcesSection() {
-    const src = OVERVIEW.sources, link = (x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)} ↗</a></li>`;
+    const docs = OVERVIEW.sources.documents;
+    const rows = docs.map((x) => `<tr><td><b>${esc(x.title)}</b></td><td>${esc(t("src.role." + x.role))}</td><td>${x.pages ? x.pages : "—"}</td>
+        <td><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(t("src.link.orig"))} ↗</a>${x.pack ? ` · <a href="${esc(x.pack)}" target="_blank" rel="noopener noreferrer">${esc(t("src.link.pack"))} ↗</a>` : ""}</td></tr>`).join("");
     return `<div class="card" id="sources" style="margin-top:28px"><h2>${esc(t("src.title"))}</h2>
-        <p class="note" style="margin:4px 0 10px">${esc(t(OVERVIEW.is_mock ? "src.demo" : "src.live"))}</p>
-        <ul class="links">${src.reports.map(link).join("")}${src.references.map(link).join("")}</ul></div>`;
+        <p class="note" style="margin:4px 0 12px">${esc(t(OVERVIEW.is_mock ? "src.demo" : "src.live"))}</p>
+        <div class="table-wrap"><table class="docs"><thead><tr><th>${esc(t("src.col.doc"))}</th><th>${esc(t("src.col.use"))}</th><th>${esc(t("src.col.pages"))}</th><th>${esc(t("src.col.links"))}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 // ---------------------------------------------------------------- map
@@ -448,7 +507,7 @@ function render() {
     document.documentElement.lang = state.lang;
     $("#app").innerHTML = `${siteHeader()}<main class="wrap" id="main" tabindex="-1">${stats()}
         <div class="grid" id="ranking"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
-        ${compareSection()}${lakeDataSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}</main>
+        ${compareSection()}${lakeDataSection()}${readingsSection()}${caveatsSection()}${weeklySection()}${sourcesSection()}</main>
         <footer class="site"><div class="wrap"><p>${esc(t("foot.formal"))}</p><p>${esc(t("foot"))}</p>
             <div class="flinks"><a href="https://github.com/priyanxs/ghatwatch/issues" target="_blank" rel="noopener noreferrer">${esc(t("foot.feedback"))}</a>
             <a href="https://github.com/priyanxs/ghatwatch" target="_blank" rel="noopener noreferrer">${esc(t("foot.code"))}</a><a href="#top">${esc(t("foot.top"))}</a></div>
@@ -475,6 +534,11 @@ function render() {
         try { await navigator.clipboard.writeText(WEEKLY["caption_" + b.dataset.copy]); } catch { return; }
         const old = b.textContent; b.textContent = t("weekly.copied"); setTimeout(() => (b.textContent = old), 1500);
     }));
+    if (READ) renderReadings();
+    else if ("IntersectionObserver" in window) {
+        const watch = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { watch.disconnect(); ensureReadings(); } }, { rootMargin: "500px" });
+        watch.observe($("#readings"));
+    } else ensureReadings();
     bindRankList();
     drawMap();
     drawCompare();

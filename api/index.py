@@ -32,6 +32,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
+from utils.allreadings import COLUMNS, load_all_readings  # noqa: E402
 from utils.caveats import build_caveats  # noqa: E402
 from utils.clock import today_ist  # noqa: E402
 from utils.data_loader import PHASES, load_data  # noqa: E402
@@ -40,7 +41,7 @@ from utils.locations import load_locations  # noqa: E402
 from utils.pdf_generator import build_pdf, hindi_available  # noqa: E402
 from utils import publish as social  # noqa: E402
 from utils.pdf_generator import build_city_pdf  # noqa: E402
-from utils.sources import REFERENCE_LINKS, SOURCE_REPORTS  # noqa: E402
+from utils.sources import SOURCE_DOCUMENTS, SOURCE_REPORTS  # noqa: E402
 from utils.weekly import build_weekly_report, days_left  # noqa: E402
 
 ON_VERCEL = bool(os.environ.get("VERCEL"))
@@ -181,7 +182,7 @@ def overview():
     return clean({
         "days_left": days_left(),
         "as_of": today_ist().isoformat(),
-        "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
+        "sources": {"documents": SOURCE_DOCUMENTS},
         "periods": [{"key": p, "year": int(y), "festival": f} for p, y, f in
                     data[["period", "year", "festival", "p_order"]].drop_duplicates().sort_values("p_order")[["period", "year", "festival"]].itertuples(index=False)],
         "timeline": timeline(data),
@@ -235,6 +236,24 @@ def ghat_brief_pdf(ghat: str):
         raise HTTPException(status_code=500, detail="Could not build the PDF brief.") from None
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="ghatwatch_{slugify(ghat).replace("-", "_")}.pdf"'})
+
+
+@app.get("/api/readings")
+def all_readings():
+    """Every reading (all 13 parameters) as compact rows, for the explorer: ``columns`` names the fields of each row."""
+    df, is_demo = load_all_readings()
+    ghats = sorted(df.ghat.unique())
+    return clean({"is_demo": is_demo, "columns": COLUMNS, "rows": df.values.tolist(), "count": len(df),
+                  "ghats": [{"name": g, "id": slugify(g), "name_hi": i18n.ghat_name(g, "hi")} for g in ghats],
+                  "periods": list(dict.fromkeys(df.period)), "parameters": list(dict.fromkeys(df.parameter)), "phases": ["Pre-Visarjan", "During", "Post-Visarjan"]})
+
+
+@app.get("/api/readings.csv")
+def all_readings_csv():
+    """The same readings as a CSV download (value, unit, flag, the value as printed, the page, the Class B result and the report link)."""
+    df, is_demo = load_all_readings()
+    name = "ghatwatch_readings_DEMO.csv" if is_demo else "ghatwatch_readings_2023_2025.csv"
+    return Response(df.to_csv(index=False), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @app.get("/api/readiness.pdf")
