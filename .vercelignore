@@ -1,6 +1,8 @@
 .venv
-.streamlit
 __pycache__
 *.pyc
 requirements-dev.txt
-ghatwatch
+docs
+scripts
+.github
+SECURITY.md

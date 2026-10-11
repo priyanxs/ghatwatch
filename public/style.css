@@ -42,7 +42,6 @@ body.hc .utility { border-bottom-color: #fff; }
 .ubtn { background: transparent; border: 1px solid rgba(255,255,255,.55); color: #fff; font: 600 .82rem var(--font); padding: 3px 10px; border-radius: 2px; cursor: pointer; min-width: 32px; }
 .ubtn:hover { background: rgba(255,255,255,.14); } .ubtn[aria-pressed="true"] { background: #fff; color: var(--navy); border-color: #fff; }
 body.hc .ubtn[aria-pressed="true"] { background: var(--gold); color: #000; }
-.utility a.skip-inline { color: #fff; }
 
 .mast { background: var(--card); border-bottom: 1px solid var(--line); }
 .mast .wrap { display: flex; align-items: center; gap: 18px; padding-top: 18px; padding-bottom: 18px; flex-wrap: wrap; }
@@ -224,6 +223,7 @@ footer.site a { color: #fff; font-size: .86rem; }
     .grid { display: block; } .rail { position: static; } .ghats { max-height: none; overflow: visible; } .card, .stat, details { break-inside: avoid; box-shadow: none; }
     details[open] > div, details > div { display: block; } footer.site { background: #fff; color: #000; border-top: 2px solid #000; } footer.site a { color: #000; }
 }
-.docinfo > div:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
-.docinfo > div:last-child:nth-child(odd) { grid-template-columns: 11rem minmax(0, 1fr); }
+@media (min-width: 1061px) {   /* two-column table: an odd last item spans the full row (on narrow screens the table is one column) */
+    .docinfo > div:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
+}
 body.hc .nav a { color: #fff; } body.hc .nav a:hover, body.hc .nav a:focus-visible { background: #fff; color: #000; }

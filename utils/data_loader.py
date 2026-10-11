@@ -190,9 +190,6 @@ def link_known_reports(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------- mock data
-MOCK_GHATS = ("Khatlapura ghat", "Prempura ghat", "Rani Kamlapati ghat / Kamla Park kund", "Hathaikheda dam / kund",
-              "Shahpura lake ghat", "Bairagarh (Sant Hirdaram) kund", "Malikhedi kund")
-
 
 def generate_mock_data(seed: int = 7) -> pd.DataFrame:
     """Illustrative readings in the same long format as the real file. NOT real measurements.

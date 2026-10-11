@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 import logging
 from xml.sax.saxutils import escape as xml_escape  # nosec B406: used to escape text for ReportLab, never to parse XML
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
