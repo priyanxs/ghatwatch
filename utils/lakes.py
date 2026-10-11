@@ -8,6 +8,7 @@ compared with that limit. Extracted by ``scripts/extract_lake_monitoring.py`` an
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -40,6 +41,7 @@ def nearest_station(ghat: str, stations: list[dict]) -> str | None:
     return None
 
 
+@lru_cache(maxsize=4)
 def load_lakes(path: Path = LAKES_PATH) -> dict:
     """``{"months": [...], "stations": [...]}`` with the monthly series and a few headline numbers per station. Never raises."""
     try:

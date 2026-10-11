@@ -90,7 +90,7 @@ fonts/           bundled Devanagari font
 | `GET /api/weekly-report` | this week's captions (preview, never posts) |
 | `GET /api/cron/weekly-post` | cron-only; posts when configured |
 | `GET /api/i18n` | interface strings (English / Hindi) |
-| `GET /api/docs` | interactive API docs |
+| `GET /api/docs` | interactive API docs (local development only; disabled on Vercel) |
 
 ## Weekly public update (off by default)
 
@@ -107,6 +107,11 @@ every Monday 09:00 IST. Nothing is posted unless these environment variables are
 | `SOCIAL_WEBHOOK_URL` | any https webhook (Zapier, Make, IFTTT) to reach X, Facebook, LinkedIn, Instagram |
 
 Demo data is never posted.
+
+## Security
+
+Read-only site, no logins or uploads. Strict Content-Security-Policy and other browser protections, escaped output, a locked-down weekly-post endpoint
+(off by default, never posts demo data), pinned and audited dependencies. See `SECURITY.md`.
 
 ## Licence
 

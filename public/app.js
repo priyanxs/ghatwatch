@@ -8,7 +8,7 @@ const LEVEL_COLOUR = { High: "#B42318", Medium: "#B7570B", Low: "#1E7B4F" };
 const NO_RECORD = "(no record)";
 
 const state = { lang: localStorage.getItem("gw-lang") || "en", ghat: null, filter: "all", lakeParam: "do",
-    size: localStorage.getItem("gw-size") || "", contrast: localStorage.getItem("gw-contrast") === "1" };
+    size: ["lg", "xl"].includes(localStorage.getItem("gw-size")) ? localStorage.getItem("gw-size") : "", contrast: localStorage.getItem("gw-contrast") === "1" };
 /** Text size and high-contrast preferences (accessibility): applied to the page and remembered. */
 function applyPrefs() {
     document.documentElement.classList.remove("fs-lg", "fs-xl");
@@ -165,7 +165,7 @@ function lakesCard(d) {
         ? ` <span class="tagnear">${esc(t("lakes.nearest"))}</span>` : ""}</td><td>${s.months_measured}</td><td>${range(s.do_min, s.do_max, s.do_months_below)}</td>
         <td>${range(s.ph_min, s.ph_max, s.ph_months_outside)}</td><td>${s.bod3_max ?? "—"}</td></tr>`).join("");
     return `<div class="card"><h2>${esc(t("sec.lakes"))}</h2><p class="note" style="margin:4px 0 8px">${esc(t("lakes.help"))}</p>
-        <div id="chart-lake" class="chart" style="min-height:300px"></div>
+        <div id="chart-lake" class="chart" style="min-height:300px" role="img" aria-label="${esc(t("lakes.chart"))}"></div>
         <div class="table-wrap"><table><thead><tr><th>${esc(t("lakes.station"))}</th><th>${esc(t("lakes.months"))}</th><th>${esc(t("lakes.do"))}</th>
         <th>${esc(t("lakes.ph"))}</th><th>${esc(t("lakes.bod"))}</th></tr></thead><tbody>${rows}</tbody></table></div>
         <p class="note" style="margin-top:8px">${esc(t("lakes.bodnote"))}</p></div>`;
@@ -217,7 +217,7 @@ function detail(d) {
         ${lakesCard(d)}
         <div class="two" style="margin-top:18px"><div class="card why" style="margin:0"><h3>${esc(t("sec.why"))}</h3>${list(brief.findings)}</div>
             <div class="card do" style="margin:0"><h3>${esc(t("sec.do"))}</h3>${list(brief.actions)}</div></div>
-        <div class="card"><h2>${esc(t("sec.trend"))}</h2><div class="charts"><div class="chart" id="chart-do"></div><div class="chart" id="chart-bod"></div><div class="chart" id="chart-ph"></div></div>
+        <div class="card"><h2>${esc(t("sec.trend"))}</h2><div class="charts"><div class="chart" id="chart-do" role="img" aria-label="${esc(t("tr.do"))}"></div><div class="chart" id="chart-bod" role="img" aria-label="${esc(t("tr.bod"))}"></div><div class="chart" id="chart-ph" role="img" aria-label="${esc(t("tr.ph"))}"></div></div>
             <p class="note">${esc(t("tr.help"))}</p></div>
         ${briefCard(d)}
         <details><summary>${esc(t("sec.table"))}</summary><div><p class="note" style="margin-bottom:8px">${esc(
@@ -245,7 +245,7 @@ function compareSection() {
         .map(([c, k]) => `<span><i class="${c}"></i>${esc(t(k))}</span>`).join("");
     return `<h2 class="section-title" id="compare">${esc(t("sec.compare"))}</h2>
         ${mapSection()}
-        <div class="two" style="margin-top:18px"><div class="card" style="margin:0"><h3>${esc(t("cmp.score"))}</h3><div id="chart-compare" style="min-height:320px"></div></div>
+        <div class="two" style="margin-top:18px"><div class="card" style="margin:0"><h3>${esc(t("cmp.score"))}</h3><div id="chart-compare" style="min-height:320px" role="img" aria-label="${esc(t("cmp.score"))}"></div></div>
         <div class="card" style="margin:0"><h3>${esc(t("sec.plan"))}</h3><p class="note" style="margin-bottom:8px">${esc(t("plan.help"))}</p>
             <div class="table-wrap"><table class="plan"><thead><tr><th class="name"></th><th>${esc(t("need.aeration"))}</th><th>${esc(t("need.cleaning"))}</th><th>${esc(t("need.testing"))}</th></tr></thead>
             <tbody>${plan}</tbody></table></div></div></div>
@@ -302,7 +302,12 @@ function sourcesSection() {
 }
 
 // ---------------------------------------------------------------- map
-let MAP = null;
+let MAP = null, MARKERS = [];
+function markerIcon(r, size) {
+    const lvl = r.risk_level.toLowerCase();
+    return L.divIcon({ className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2],
+        html: `<div class="gw-pin ${lvl} ${r.id === state.ghat ? "sel" : ""}" style="width:${size}px;height:${size}px">${lvl === "high" ? '<span class="pulse"></span>' : ""}<b>${Math.round(r.risk_score)}</b></div>` });
+}
 function mapSection() {
     const unmapped = OVERVIEW.ranking.filter((r) => !r.location).map((r) => ghatName(r));
     return `<div class="card map-card"><div class="map-head"><div><h2>${esc(t("sec.map"))}</h2><p class="lede">${esc(t("map.help"))}</p></div></div>
@@ -332,16 +337,17 @@ function drawMap() {
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(MAP);
     const points = spreadPoints(rows);
+    MARKERS = [];
     rows.forEach((r, i) => {
         const size = 34 + Math.round(r.risk_score / 100 * 22), lvl = r.risk_level.toLowerCase();
-        const icon = L.divIcon({ className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2],
-            html: `<div class="gw-pin ${lvl} ${r.id === state.ghat ? "sel" : ""}" style="width:${size}px;height:${size}px">${lvl === "high" ? '<span class="pulse"></span>' : ""}<b>${Math.round(r.risk_score)}</b></div>` });
+        const icon = markerIcon(r, size);
         const note = r.location.precision === "exact" ? t("map.exact") : t("map.approx");
         const needs = ["aeration", "cleaning", "testing"].map((n) => `<span class="need-item">${esc(t("need." + n))} ${needPill(r["need_" + n])}</span>`).join("");
         const popup = `<div class="pop"><b>${esc(ghatName(r))}</b><div class="pop-row"><span class="badge ${lvl}">${esc(label("lvl", r.risk_level))}</span>
             <span>${Math.round(r.risk_score)} / 100</span></div><div class="needs" style="margin:6px 0">${needs}</div>
             <p class="pop-note">${esc(note)}</p><button class="pop-btn" data-open="${esc(r.id)}">${esc(t("map.open"))} →</button></div>`;
-        L.marker(points[i], { icon, title: ghatName(r), riseOnHover: true }).addTo(MAP).bindPopup(popup, { maxWidth: 260 });
+        const marker = L.marker(points[i], { icon, title: ghatName(r), riseOnHover: true }).addTo(MAP).bindPopup(popup, { maxWidth: 260 });
+        MARKERS.push({ row: r, size, marker });
     });
     MAP.fitBounds(L.latLngBounds(points), { padding: [50, 50], maxZoom: 14 });
     MAP.on("popupopen", (e) => e.popup.getElement().querySelector("[data-open]")?.addEventListener("click", (ev) => selectGhat(ev.target.dataset.open)));
@@ -421,6 +427,7 @@ async function loadDetail() {
     }
     if (wanted !== state.ghat || lang !== state.lang) return;  // a newer selection or language took over
     const d = detailCache[wanted], lim = OVERVIEW.limits;
+    purgeCharts(slot);
     slot.innerHTML = detail(d);
     if (!chartsAvailable()) return;
     drawTrend($("#chart-do"), d.readings, "do", t("tr.do"), [hline(lim.do_min)], t("tr.lim.do", { v: lim.do_min }));
@@ -434,7 +441,10 @@ function bindRankList() {
     document.querySelectorAll("#rank-list [data-ghat]").forEach((b) => (b.onclick = () => selectGhat(b.dataset.ghat)));
 }
 
+const purgeCharts = (root = document) => typeof Plotly !== "undefined" && root.querySelectorAll(".js-plotly-plot").forEach((el) => Plotly.purge(el));
+
 function render() {
+    purgeCharts();
     document.documentElement.lang = state.lang;
     $("#app").innerHTML = `${siteHeader()}<main class="wrap" id="main" tabindex="-1">${stats()}
         <div class="grid" id="ranking"><aside class="rail">${rankCard()}</aside><section id="detail"></section></div>
@@ -471,8 +481,16 @@ function render() {
     return loadDetail();
 }
 
+function refreshSelection() {
+    $("#rank-list").innerHTML = rankRows(); bindRankList();
+    document.querySelectorAll("tr.click[data-ghat]").forEach((tr) => tr.classList.toggle("sel", tr.dataset.ghat === state.ghat));
+    MARKERS.forEach((m) => m.marker.setIcon(markerIcon(m.row, m.size)));
+}
+
 function selectGhat(id) {
-    state.ghat = id; location.hash = id; render();
+    state.ghat = id; location.hash = id; refreshSelection();
+    if (!detailCache[id]) $("#detail").innerHTML = `<div class="card"><p class="note" role="status">${esc(t("loading"))}</p></div>`;
+    loadDetail();
     // The details sit near the top of the page; picking a ghat from the map, charts or grid further down must show them.
     const top = $("#detail").getBoundingClientRect().top;
     if (top < 0 || top > window.innerHeight * 0.7 || window.innerWidth <= 1060) $("#detail").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -485,6 +503,7 @@ async function init() {
         $("#app").innerHTML = `<div class="wrap"><div class="notice error" style="margin-top:30px">Could not load GhatWatch data (${esc(err.message)}). Please refresh.</div></div>`;
         return;
     }
+    if (!I18N.languages[state.lang]) state.lang = "en";   // ignore a language code that is not one we offer
     applyPrefs();
     const fromHash = decodeURIComponent(location.hash.slice(1));
     state.ghat = OVERVIEW.ranking.some((r) => r.id === fromHash) ? fromHash : OVERVIEW.ranking[0].id;

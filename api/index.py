@@ -13,6 +13,8 @@ Vercel, ``public/`` is served by Vercel itself and only ``/api/*`` reaches this 
 """
 from __future__ import annotations
 
+import hmac
+import logging
 import math
 import os
 import re
@@ -31,6 +33,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from utils import i18n  # noqa: E402
 from utils import risk_engine as engine  # noqa: E402
 from utils.caveats import build_caveats  # noqa: E402
+from utils.clock import today_ist  # noqa: E402
 from utils.data_loader import PHASES, load_data  # noqa: E402
 from utils.lakes import lake_for_water_body, load_lakes, nearest_station  # noqa: E402
 from utils.locations import load_locations  # noqa: E402
@@ -40,7 +43,35 @@ from utils.pdf_generator import build_city_pdf  # noqa: E402
 from utils.sources import REFERENCE_LINKS, SOURCE_REPORTS  # noqa: E402
 from utils.weekly import build_weekly_report, days_left  # noqa: E402
 
-app = FastAPI(title="GhatWatch API", version="1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+log = logging.getLogger("ghatwatch")
+# The interactive docs pull Swagger UI from a CDN, which the site's Content-Security-Policy blocks; they are for local development only.
+app = FastAPI(title="GhatWatch API", version="1.0", docs_url=None if ON_VERCEL else "/api/docs",
+              openapi_url=None if ON_VERCEL else "/api/openapi.json", redoc_url=None)
+
+# Content-Security-Policy and friends. On Vercel the same values are sent by vercel.json (keep the two in sync); this
+# middleware only adds them when running locally, so a deployed response never carries duplicate headers.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": ("default-src 'self'; script-src 'self' https://unpkg.com https://cdn.plot.ly; "
+                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com data:; "
+                                "img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self'; object-src 'none'; "
+                                "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"),
+    "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+}
+
+
+@app.middleware("http")
+async def headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api/"):
+        # Data only changes on redeploy, so a short shared cache protects the heavy PDF endpoints; the cron endpoint is never cached.
+        response.headers["Cache-Control"] = "no-store" if path.startswith("/api/cron/") else "public, max-age=300, s-maxage=300"
+    if not ON_VERCEL:
+        for k, v in SECURITY_HEADERS.items():
+            response.headers.setdefault(k, v)
+    return response
 
 READING_COLUMNS = ["period", "year", "festival", "phase", "do_raw", "bod_raw", "ph_raw", "do_value", "bod_value", "ph_value",
                    "do_status", "bod_status", "ph_status", "source", "page", "source_url"]
@@ -67,6 +98,19 @@ def state():
     return engine.annotate(result.df), engine.rank_ghats(result.df), result.is_mock, result.notes
 
 
+_PDFS: dict = {}
+
+
+def cached_pdf(key: tuple, build):
+    """Build a PDF once per instance and day: they are the slowest responses and identical for every visitor."""
+    full = (*key, today_ist())
+    if full not in _PDFS:
+        if len(_PDFS) > 40:
+            _PDFS.clear()
+        _PDFS[full] = build()
+    return _PDFS[full]
+
+
 def slugify(name: str) -> str:
     """URL-safe id for a ghat. Real names contain "/" and brackets, which cannot sit in a URL path."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -74,10 +118,12 @@ def slugify(name: str) -> str:
 
 def find_ghat(key: str):
     """Return ``(annotated rows, ranking row)`` for a ghat given its id (or its name), or 404."""
+    if len(key) > 120:
+        raise HTTPException(status_code=404, detail="Unknown ghat")
     data, ranking, _, _ = state()
     match = ranking[ranking.ghat.map(slugify) == slugify(key)]
     if match.empty:
-        raise HTTPException(status_code=404, detail=f"Unknown ghat: {key}")
+        raise HTTPException(status_code=404, detail="Unknown ghat")
     name = match.iloc[0].ghat
     return data[data.ghat == name], match.iloc[0]
 
@@ -134,7 +180,7 @@ def overview():
     rows = [{**r, "location": places.get(r["ghat"]), "id": slugify(r["ghat"]), "ghat_hi": i18n.ghat_name(r["ghat"], "hi"), "trend": trend[r["ghat"]]} for r in ranking.to_dict("records")]
     return clean({
         "days_left": days_left(),
-        "as_of": __import__("datetime").date.today().isoformat(),
+        "as_of": today_ist().isoformat(),
         "sources": {"reports": SOURCE_REPORTS, "references": REFERENCE_LINKS},
         "periods": [{"key": p, "year": int(y), "festival": f} for p, y, f in
                     data[["period", "year", "festival", "p_order"]].drop_duplicates().sort_values("p_order")[["period", "year", "festival"]].itertuples(index=False)],
@@ -182,10 +228,11 @@ def ghat_brief_pdf(ghat: str):
     summary = summary.to_dict()
     ghat = summary["ghat"]
     try:
-        pdf = build_pdf(ghat, summary, engine.build_brief(ghat, summary), rows,
-                        int(summary["rank"]), len(ranking), is_mock)
-    except Exception as exc:  # report a clean error instead of a bare 500 trace
-        raise HTTPException(status_code=500, detail=f"Could not build the PDF brief: {exc}") from exc
+        pdf = cached_pdf(("ghat", slugify(ghat)), lambda: build_pdf(ghat, summary, engine.build_brief(ghat, summary), rows,
+                                                                       int(summary["rank"]), len(ranking), is_mock))
+    except Exception:  # log the detail server-side; the caller only learns that it failed
+        log.exception("PDF brief failed for %s", ghat)
+        raise HTTPException(status_code=500, detail="Could not build the PDF brief.") from None
     return Response(pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="ghatwatch_{slugify(ghat).replace("-", "_")}.pdf"'})
 
@@ -199,7 +246,7 @@ def readiness_pdf():
         brief = engine.build_brief(r["ghat"], r)
         rows.append({**r, "ghat_hi": i18n.ghat_name(r["ghat"], "hi"),
                      "action_en": brief["en"]["actions"][0], "action_hi": brief["hi"]["actions"][0]})
-    return Response(build_city_pdf(rows, is_mock), media_type="application/pdf",
+    return Response(cached_pdf(("city",), lambda: build_city_pdf(rows, is_mock)), media_type="application/pdf",
                     headers={"Content-Disposition": 'attachment; filename="ghatwatch_city_brief.pdf"'})
 
 
@@ -220,7 +267,7 @@ def weekly_post(authorization: str | None = Header(default=None)):
     secret = os.environ.get("CRON_SECRET", "")
     if not secret:
         raise HTTPException(status_code=503, detail="CRON_SECRET is not set, so this endpoint is disabled.")
-    if authorization != f"Bearer {secret}":
+    if not hmac.compare_digest((authorization or "").encode(), f"Bearer {secret}".encode()):  # constant-time compare
         raise HTTPException(status_code=401, detail="Unauthorized")
     _, ranking, is_mock, _ = state()
     report = build_weekly_report(ranking, is_mock)

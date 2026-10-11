@@ -36,9 +36,20 @@ def enabled() -> bool:
     return _env("POST_ENABLED").lower() == "true"
 
 
+def _https_only_opener() -> urllib.request.OpenerDirector:
+    """An opener that can only speak https: a redirect to http:, file: or ftp: is refused, not followed."""
+    opener = urllib.request.OpenerDirector()
+    for handler in (urllib.request.HTTPSHandler(), urllib.request.HTTPDefaultErrorHandler(),
+                    urllib.request.HTTPErrorProcessor(), urllib.request.HTTPRedirectHandler()):
+        opener.add_handler(handler)
+    return opener
+
+
 def _send(req: urllib.request.Request) -> tuple[bool, str]:
+    if not req.full_url.lower().startswith("https://"):
+        return False, "refused: not https"
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with _https_only_opener().open(req, timeout=10) as resp:  # nosec B310: https-only opener, scheme checked above
             return 200 <= resp.status < 300, f"HTTP {resp.status}"
     except Exception as exc:  # report the failure; never include the request (it holds the secret)
         return False, type(exc).__name__

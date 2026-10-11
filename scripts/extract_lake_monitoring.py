@@ -51,7 +51,8 @@ def main(pdf: str) -> None:
                 key = WANTED.get(cells[1].lower())
                 if key:
                     rows[key] = {"months": cells[3:15], "avg": cells[15], "max": cells[16], "min": cells[17], "page": pn + 1}
-        assert header and len(rows) == 3, f"could not read {name}: found {sorted(rows)}"
+        if not (header and len(rows) == 3):
+            sys.exit(f"could not read {name}: found {sorted(rows)}")
         for key, row in rows.items():
             nums = [float(v) for v in row["months"] if NUM.match(v)]
             avg = float(row["avg"]) if NUM.match(row["avg"]) else None

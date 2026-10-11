@@ -8,6 +8,8 @@ Devanagari font is unavailable, the PDF is produced in English only and says so.
 from __future__ import annotations
 
 import io
+import logging
+from xml.sax.saxutils import escape as xml_escape  # nosec B406: used to escape text for ReportLab, never to parse XML
 from datetime import date
 from pathlib import Path
 
@@ -20,6 +22,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import FILL_NON_ZERO
 from reportlab.platypus import Flowable, Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from utils.clock import today_ist
 from utils.risk_engine import BREACH, DISCLAIMER_EN, DISCLAIMER_HI, LEVEL_HI
 
 try:
@@ -127,7 +130,8 @@ def _load_shaper() -> DevanagariShaper | None:
                 shaper = DevanagariShaper(path, index)
                 if shaper.has_devanagari():
                     return shaper
-        except Exception:
+        except Exception as exc:  # try the next candidate font, but leave a trace
+            logging.getLogger(__name__).warning("Devanagari font %s unusable: %s", path, type(exc).__name__)
             continue
     return None
 
@@ -211,7 +215,7 @@ def _story(summary, brief, readings, rank, n_ghats, is_mock, k):
         fontName="Helvetica-Bold", fontSize=16 * k, leading=20 * k))]
     if hindi:
         titles.append(HindiText("घाटवॉच - विसर्जन जल-गुणवत्ता कार्य-सार", size=12 * k, bold=True))
-    titles.append(Paragraph(f"Bhopal Municipal Corporation &nbsp;|&nbsp; Prepared {date.today():%d %b %Y}", small))
+    titles.append(Paragraph(f"Bhopal Municipal Corporation &nbsp;|&nbsp; Prepared {today_ist():%d %b %Y}", small))
     if LOGO.exists():
         logo_size = 20 * mm * k
         head = Table([[Image(str(LOGO), logo_size, logo_size, mask="auto"), titles]],
@@ -224,7 +228,7 @@ def _story(summary, brief, readings, rank, n_ghats, is_mock, k):
     s.append(Spacer(1, 4 * k))
 
     # Status banner
-    banner = Table([[Paragraph(f"<b>{brief['en']['headline']}</b>", st(
+    banner = Table([[Paragraph(f"<b>{xml_escape(brief['en']['headline'])}</b>", st(
         fontSize=11 * k, leading=14 * k, textColor=colors.white)),
         Paragraph(f"Rank {rank} of {n_ghats}<br/>Data gap {summary['gap_pct']:g}%", st(
             fontSize=9 * k, leading=12 * k, textColor=colors.white))]], colWidths=[None, 38 * mm])
@@ -258,9 +262,9 @@ def _story(summary, brief, readings, rank, n_ghats, is_mock, k):
 
     # English then Hindi: findings and recommendations
     s.append(Paragraph("Findings", h2))
-    s += [Paragraph(t, bullet, bulletText="\u2022") for t in brief["en"]["findings"]]
+    s += [Paragraph(xml_escape(t), bullet, bulletText="\u2022") for t in brief["en"]["findings"]]
     s.append(Paragraph("Recommended municipal actions", h2))
-    s += [Paragraph(t, bullet, bulletText="\u2022") for t in brief["en"]["actions"]]
+    s += [Paragraph(xml_escape(t), bullet, bulletText="\u2022") for t in brief["en"]["actions"]]
 
     if hindi:
         s.append(Spacer(1, 4 * k))
@@ -300,7 +304,7 @@ def _city_story(rows: list[dict], is_mock: bool, k: float) -> list:
     titles = [Paragraph("GhatWatch - Visarjan Readiness Brief (all ghats)", st(fontName="Helvetica-Bold", fontSize=16 * k, leading=20 * k))]
     if hindi:
         titles.append(HindiText("घाटवॉच - विसर्जन तैयारी सार (सभी घाट)", size=12 * k, bold=True))
-    titles.append(Paragraph(f"Bhopal Municipal Corporation &nbsp;|&nbsp; Prepared {date.today():%d %b %Y}", st(fontSize=8 * k, textColor=MUTED)))
+    titles.append(Paragraph(f"Bhopal Municipal Corporation &nbsp;|&nbsp; Prepared {today_ist():%d %b %Y}", st(fontSize=8 * k, textColor=MUTED)))
     story: list = []
     if LOGO.exists():
         size = 18 * mm * k
@@ -319,10 +323,10 @@ def _city_story(rows: list[dict], is_mock: bool, k: float) -> list:
     data = [[Paragraph(f"<b>{h}</b>", st()) for h in ("#", "Ghat", "Level", "Score", "Gap", "Needs A / C / T", "First recommended action")]]
     for r in rows:
         col = LEVEL_COLOUR[r["risk_level"]].hexval()[2:]
-        data.append([Paragraph(str(r["rank"]), st()), Paragraph(r["ghat"], st()),
+        data.append([Paragraph(str(r["rank"]), st()), Paragraph(xml_escape(r["ghat"]), st()),
                      Paragraph(f'<font color="#{col}"><b>{r["risk_level"]}</b></font>', st()),
                      Paragraph(f'{r["risk_score"]:.0f}', st()), Paragraph(f'{r["gap_pct"]:g}%', st()),
-                     Paragraph(" / ".join(r[f"need_{n}"][0] for n in ("aeration", "cleaning", "testing")), st()), Paragraph(r["action_en"], st())])
+                     Paragraph(" / ".join(r[f"need_{n}"][0] for n in ("aeration", "cleaning", "testing")), st()), Paragraph(xml_escape(r["action_en"]), st())])
     table = Table(data, colWidths=[7 * mm, 34 * mm, 15 * mm, 11 * mm, 12 * mm, 22 * mm, 77 * mm], repeatRows=1, hAlign="LEFT")
     table.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, 0), 0.8, INK), ("LINEBELOW", (0, 1), (-1, -1), 0.3, RULE),
                                ("VALIGN", (0, 0), (-1, -1), "TOP"), ("TOPPADDING", (0, 0), (-1, -1), 2),

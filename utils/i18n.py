@@ -229,7 +229,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "lakedata.do": {"en": "Dissolved oxygen (mg/L)", "hi": "घुलित ऑक्सीजन (mg/L)"},
     "lakedata.ph": {"en": "pH", "hi": "pH"},
     "lakedata.bod3": {"en": "BOD, 3 days at 27°C (not judged)", "hi": "BOD, 3 दिन 27°C पर (आँका नहीं गया)"},
-    "hdr.title": {"en": "Visarjan Ghat Water-Quality Assessment", "hi": "विसर्जन घाट जल-गुणवत्ता मूल्यांकन"},
+    "hdr.title": {"en": "GhatWatch: Visarjan Ghat Water-Quality Assessment", "hi": "GhatWatch: विसर्जन घाट जल-गुणवत्ता मूल्यांकन"},
     "hdr.sub": {"en": "Decision support for immersion-ghat planning in Bhopal", "hi": "भोपाल में विसर्जन घाट योजना के लिए निर्णय सहायता"},
     "hdr.strip": {"en": "Prepared for the Bhopal Municipal Corporation · Based on MPPCB monitoring reports · Historical records, not a live measurement",
                   "hi": "भोपाल नगर निगम के लिए तैयार · MPPCB निगरानी रिपोर्टों पर आधारित · ऐतिहासिक रिकॉर्ड, लाइव माप नहीं"},
@@ -279,6 +279,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "foot.feedback": {"en": "Feedback and issues", "hi": "प्रतिक्रिया और समस्याएँ"},
     "foot.code": {"en": "Source code (MIT licence)", "hi": "स्रोत कोड (MIT लाइसेंस)"},
     "foot.top": {"en": "Back to top", "hi": "ऊपर जाएँ"},
+    "loading": {"en": "Loading…", "hi": "लोड हो रहा है…"},
     # --- value labels
     "lvl.High": {"en": "High", "hi": "उच्च"},
     "lvl.Medium": {"en": "Medium", "hi": "मध्यम"},

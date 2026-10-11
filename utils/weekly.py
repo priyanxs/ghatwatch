@@ -10,6 +10,7 @@ from datetime import date
 
 import pandas as pd
 
+from utils.clock import today_ist
 from utils.risk_engine import GHAT_HI, LEVEL_HI
 
 DURGA_VISARJAN = date(2026, 10, 20)
@@ -34,7 +35,7 @@ TIPS = [
 
 def days_left(today: date | None = None) -> int | None:
     """Days until Durga Visarjan, or None once it has passed."""
-    n = (DURGA_VISARJAN - (today or date.today())).days
+    n = (DURGA_VISARJAN - (today or today_ist())).days
     return n if n >= 0 else None
 
 
@@ -46,7 +47,7 @@ def tips_for(today: date) -> list[tuple[str, str]]:
 
 def build_weekly_report(ranking: pd.DataFrame, is_mock: bool, today: date | None = None) -> dict:
     """Both captions plus the facts behind them. ``ranking`` is ``risk_engine.rank_ghats`` output."""
-    today = today or date.today()
+    today = today or today_ist()
     top = ranking.iloc[0]
     n, high = len(ranking), int((ranking.risk_level == "High").sum())
     gap = round(100 * ranking.no_data.sum() / ranking.readings.sum())

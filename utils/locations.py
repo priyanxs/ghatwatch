@@ -5,6 +5,7 @@ A ghat with no coordinates simply stays off the map and is listed as "not confir
 """
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +14,7 @@ LOCATIONS_PATH = Path(__file__).resolve().parent.parent / "data" / "ghat_locatio
 BHOPAL_LAT, BHOPAL_LON = (22.9, 23.5), (77.1, 77.7)   # anything outside this box is a typo, not a Bhopal ghat
 
 
+@lru_cache(maxsize=4)
 def load_locations(path: Path = LOCATIONS_PATH) -> dict[str, dict]:
     """``{ghat name: {lat, lon, precision, basis}}`` for rows with usable coordinates."""
     try:
