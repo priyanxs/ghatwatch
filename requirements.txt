@@ -1,5 +1,5 @@
 # Backend deployed on Vercel (api/index.py). Streamlit / Plotly are NOT needed there; see requirements-dev.txt.
-fastapi==0.143.0
+fastapi==0.159.1
 pandas==3.0.6
 numpy==2.4.6
 reportlab==5.0.1
