@@ -4,4 +4,4 @@ pandas==3.0.6
 numpy==2.4.6
 reportlab==5.0.1
 # Shapes Devanagari for the Hindi half of the PDF brief (ReportLab alone misspells it).
-uharfbuzz==0.56.3
+uharfbuzz==0.57.0
