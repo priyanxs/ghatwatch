@@ -1,6 +1,6 @@
 # Backend deployed on Vercel (api/index.py). Streamlit / Plotly are NOT needed there; see requirements-dev.txt.
 fastapi==0.143.0
-pandas==3.0.6
+pandas==3.1.0
 numpy==2.4.6
 reportlab==5.0.1
 # Shapes Devanagari for the Hindi half of the PDF brief (ReportLab alone misspells it).
